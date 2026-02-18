@@ -18,3 +18,12 @@ export const threatKeywords = [
   "access for sale",
   "exposed"
 ];
+
+export const indiaKeywords = [
+  "india","indian","aadhaar","upi","gov","bank"
+];
+
+export const sectorKeywords = [
+  "college","university","hospital",
+  "railway","telecom","fintech"
+];

@@ -5,7 +5,5 @@ export function containsThreatWords(text) {
 
   const lowerText = text.toLowerCase();
 
-  return threatKeywords.some(keyword =>
-    lowerText.includes(keyword)
-  );
+  return threatKeywords.some((keyword) => lowerText.includes(keyword));
 }
