@@ -1,6 +1,6 @@
 import axios from "axios";
 import { supabase } from "../supabaseClient.js";
-import { redditQueries } from "./redditQueries.js";
+import { redditQueries } from "./redditThreadQueries.js";
 
 export async function scrapeReddit() {
   console.log("🔎 Searching Reddit using queries...");
