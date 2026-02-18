@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,8 +18,38 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { createClient } from "@/lib/supabase/client";
 
 const LoginForm = () => {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const supabase = createClient();
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
+    router.push("/dashboard");
+    router.refresh();
+  };
+
   return (
     <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
       <div className="py-10 md:py-20 max-w-lg px-4 sm:px-0 mx-auto w-full">
@@ -38,7 +72,7 @@ const LoginForm = () => {
           </CardHeader>
 
           <CardContent className="p-0 mt-6">
-            <form>
+            <form onSubmit={handleSubmit}>
               <FieldGroup className="gap-6">
 
                 {/* Email */}
@@ -48,6 +82,8 @@ const LoginForm = () => {
                   </FieldLabel>
                   <Input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="admin@organization.com"
                     required
                     className="dark:bg-background"
@@ -61,6 +97,8 @@ const LoginForm = () => {
                   </FieldLabel>
                   <Input
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     required
                     className="dark:bg-background"
@@ -83,15 +121,25 @@ const LoginForm = () => {
                   </a>
                 </Field>
 
+                {/* Error */}
+                {error && (
+                  <p className="text-sm text-red-500 text-center">{error}</p>
+                )}
+
                 {/* CTA */}
                 <Field className="gap-4">
-                  <Button type="submit" size="lg" className="rounded-lg w-full">
-                    Open Security Dashboard 🔐
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="rounded-lg w-full"
+                    disabled={loading}
+                  >
+                    {loading ? "Signing in…" : "Open Security Dashboard 🔐"}
                   </Button>
 
                   <FieldDescription className="text-center text-sm text-muted-foreground">
                     New organization?{" "}
-                    <a href="#" className="font-medium">
+                    <a href="/register" className="font-medium">
                       Create account
                     </a>
                   </FieldDescription>

@@ -1,4 +1,4 @@
-import RegisterForm from "@/components/shadcn-space/blocks/register/register";
+import RegisterForm from "@/components/blocks/auth/register-form";
 
 const Page = () => {
   return <RegisterForm />;
