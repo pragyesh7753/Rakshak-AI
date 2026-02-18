@@ -11,99 +11,92 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const LoginForm = () => {
   return (
-    <section
-      className="bg-primary dark:bg-background min-h-screen flex items-center justify-center relative">
-      <div
-        className="pointer-events-none absolute inset-0 right-0 overflow-hidden md:block hidden">
-        {/* Outer big circle */}
-        <div
-          className="absolute left-1/1 top-0 h-[2600px] w-[2600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10" />
-        {/* Inner circle */}
-        <div
-          className="absolute left-1/1 top-0 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary dark:bg-background" />
-      </div>
+    <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
       <div className="py-10 md:py-20 max-w-lg px-4 sm:px-0 mx-auto w-full">
-        <Card className="max-w-lg px-6 py-8 sm:p-12 relative">
-          <CardHeader className="text-center gap-6 p-0">
-            <div className="mx-auto">
-              <a href="">
-                <img
-                  src="https://images.shadcnspace.com/assets/logo/logo-icon-black.svg"
-                  alt="shadcnspace"
-                  className="dark:hidden h-10 w-10" />
-                <img
-                  src="https://images.shadcnspace.com/assets/logo/logo-icon-white.svg"
-                  alt="shadcnspace"
-                  className="hidden dark:block h-10 w-10" />
-              </a>
+        <Card className="max-w-lg px-6 py-8 sm:p-12 shadow-2xl">
+          <CardHeader className="text-center gap-3 p-0">
+            
+            {/* Logo */}
+            <div className="text-3xl font-bold tracking-tight">
+              🛡️ Rakshak AI
             </div>
+
             <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl font-medium text-card-foreground">
-                Login to your account now
+              <CardTitle className="text-2xl font-semibold">
+                Access Threat Dashboard
               </CardTitle>
+              <CardDescription>
+                Monitor cyber threats targeting your organization
+              </CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+
+          <CardContent className="p-0 mt-6">
             <form>
               <FieldGroup className="gap-6">
-                
-                <div className="flex flex-col gap-4">
-                  <Field className="gap-1.5">
-                    <FieldLabel htmlFor="email" className="text-sm text-muted-foreground font-normal">
-                      Email*
-                    </FieldLabel>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="example@gmail.com"
-                      required
-                      className="dark:bg-background" />
-                  </Field>
-                  <Field className="gap-1.5">
-                    <FieldLabel htmlFor="password" className="text-sm text-muted-foreground font-normal">
-                      Password*
-                    </FieldLabel>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      required
-                      className="dark:bg-background" />
-                  </Field>
-                </div>
 
+                {/* Email */}
+                <Field className="gap-1.5">
+                  <FieldLabel className="text-sm text-muted-foreground">
+                    Work Email
+                  </FieldLabel>
+                  <Input
+                    type="email"
+                    placeholder="admin@organization.com"
+                    required
+                    className="dark:bg-background"
+                  />
+                </Field>
+
+                {/* Password */}
+                <Field className="gap-1.5">
+                  <FieldLabel className="text-sm text-muted-foreground">
+                    Password
+                  </FieldLabel>
+                  <Input
+                    type="password"
+                    placeholder="Enter your password"
+                    required
+                    className="dark:bg-background"
+                  />
+                </Field>
+
+                {/* Remember device */}
                 <Field className="flex flex-row items-center justify-between w-full">
                   <div className="flex items-center gap-3">
-                    <Checkbox id="terms" defaultChecked className="cursor-pointer" />
+                    <Checkbox id="remember" defaultChecked className="cursor-pointer" />
                     <FieldLabel
-                      htmlFor="terms"
-                      className="text-sm text-primary font-normal cursor-pointer">
-                      Remember this device
+                      htmlFor="remember"
+                      className="text-sm cursor-pointer">
+                      Trust this device
                     </FieldLabel>
                   </div>
-                  <a href="#" className="text-sm text-card-foreground font-medium text-end">
+
+                  <a href="#" className="text-sm font-medium">
                     Forgot password?
                   </a>
                 </Field>
 
+                {/* CTA */}
                 <Field className="gap-4">
-                  <Button type="submit" size={"lg"} className="rounded-lg">
-                    Sign in
+                  <Button type="submit" size="lg" className="rounded-lg w-full">
+                    Open Security Dashboard 🔐
                   </Button>
-                  <FieldDescription className="text-center text-sm font-normal text-muted-foreground">
-                    Don&apos;t have an account?{" "}
-                    <a href="#" className="font-medium text-card-foreground !no-underline">
-                      Create an account
+
+                  <FieldDescription className="text-center text-sm text-muted-foreground">
+                    New organization?{" "}
+                    <a href="#" className="font-medium">
+                      Create account
                     </a>
                   </FieldDescription>
                 </Field>
+
               </FieldGroup>
             </form>
           </CardContent>
