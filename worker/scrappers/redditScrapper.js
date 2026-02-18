@@ -1,47 +1,40 @@
-import Parser from "rss-parser";
+import axios from "axios";
 import { supabase } from "../supabaseClient.js";
-
-const parser = new Parser({
-  headers: {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-    "Accept": "application/rss+xml",
-    "Referer": "https://www.reddit.com/",
-  },
-})
-const subreddits = [
-  "cybersecurity",
-  "netsec",
-  "hacking",
-  "bugbounty"
-];
+import { redditQueries } from "./redditQueries.js";
 
 export async function scrapeReddit() {
-  console.log("🔎 Fetching Reddit RSS feeds...");
+  console.log("🔎 Searching Reddit using queries...");
 
-  for (const sub of subreddits) {
+  for (const query of redditQueries) {
     try {
-      const feed = await parser.parseURL(
-        `https://www.reddit.com/r/${sub}/new/.rss`
-      );
+      const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=10`;
 
-      for (const item of feed.items.slice(0, 10)) {
+      const res = await axios.get(url, {
+        headers: { "User-Agent": "rakshak-ai" }
+      });
+
+      const posts = res.data.data.children;
+
+      for (const p of posts) {
+        const post = p.data;
+
         await supabase.from("raw_posts").insert({
           source_id: 1,
-          title: item.title,
-          content: item.contentSnippet || item.title,
-          url: item.link,
-          author: item.creator || "reddit",
-          posted_at: new Date(item.pubDate),
+          title: post.title,
+          content: post.selftext || post.title,
+          url: `https://reddit.com${post.permalink}`,
+          author: post.author,
+          posted_at: new Date(post.created_utc * 1000),
           keyword_score: 3
         });
       }
 
-      console.log(`Fetched posts from r/${sub}`);
+      console.log(`Fetched posts for query: ${query}`);
+
     } catch (err) {
-      console.log("RSS error:", err.message);
+      console.log("Reddit error:", err.message);
     }
   }
 
-  console.log("✅ Reddit RSS scraping finished");
+  console.log("✅ Reddit search scraping finished");
 }
