@@ -7,10 +7,10 @@ export function DashboardPreview() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            Intelligent Threat Intelligence Platform
+            Threat Dashboard Preview
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            A unified dashboard to monitor, analyze, and respond to cyber threats in real-time.
+            Monitor all threats in one unified dashboard. Real-time visibility into your security posture.
           </p>
         </div>
 
@@ -24,12 +24,12 @@ export function DashboardPreview() {
               {/* Dashboard header */}
               <div className="flex items-center justify-between mb-8 pb-8 border-b border-border">
                 <div>
-                  <h3 className="text-2xl font-bold text-foreground">Security Dashboard</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Real-time threat monitoring & analysis</p>
+                  <h3 className="text-2xl font-bold text-foreground">Rakshak AI Dashboard</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Real-time OSINT threat monitoring</p>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30">
                   <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-medium text-green-700 dark:text-green-300">All systems secure</span>
+                  <span className="text-xs font-medium text-green-700 dark:text-green-300">Monitoring active</span>
                 </div>
               </div>
 
@@ -70,31 +70,40 @@ export function DashboardPreview() {
 
               {/* Alerts list */}
               <div className="space-y-3">
+                <div className="flex items-start gap-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground">Admin access offer detected on dark web</p>
+                    <p className="text-xs text-muted-foreground mt-1">Threat actor offering admin credentials for your domain. Immediate password reset recommended.</p>
+                  </div>
+                  <span className="text-xs font-medium text-red-600 dark:text-red-400 whitespace-nowrap">1h ago</span>
+                </div>
+
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground">Credential exposed on Reddit</p>
-                    <p className="text-xs text-muted-foreground mt-1">Your email was mentioned in a public forum discussing data leaks. Review and change password if needed.</p>
+                    <p className="font-medium text-sm text-foreground">SSL certificate expiring in 7 days</p>
+                    <p className="text-xs text-muted-foreground mt-1">Certificate for api.yourdomain.com expires soon. Renew to avoid service disruption.</p>
                   </div>
-                  <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400 whitespace-nowrap">2h ago</span>
+                  <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400 whitespace-nowrap">3h ago</span>
                 </div>
 
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
                   <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground">GitHub secret scan completed</p>
-                    <p className="text-xs text-muted-foreground mt-1">Scanned 45 repositories. No secrets found. Status: All clear.</p>
+                    <p className="font-medium text-sm text-foreground">GitHub repository scan completed</p>
+                    <p className="text-xs text-muted-foreground mt-1">Scanned 12 repositories. 1 API key found and rotated automatically.</p>
                   </div>
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">1h ago</span>
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">5h ago</span>
                 </div>
 
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
                   <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground">Previous threat resolved</p>
-                    <p className="text-xs text-muted-foreground mt-1">Password changed and verified. No further exposure detected.</p>
+                    <p className="font-medium text-sm text-foreground">Domain surveillance: All clear</p>
+                    <p className="text-xs text-muted-foreground mt-1">No typosquatting or phishing domains detected in the last 24 hours.</p>
                   </div>
-                  <span className="text-xs font-medium text-green-600 dark:text-green-400 whitespace-nowrap">5h ago</span>
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400 whitespace-nowrap">6h ago</span>
                 </div>
               </div>
 

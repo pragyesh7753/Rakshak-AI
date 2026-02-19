@@ -1,27 +1,27 @@
 import { Card } from '@/components/ui/card'
-import { Map, Zap, Inbox, Brain } from 'lucide-react'
+import { Zap, Users, ShieldCheck, TrendingUp } from 'lucide-react'
 
 export function USPSection() {
   const features = [
     {
-      icon: Map,
-      title: 'Digital Life Exposure Map',
-      description: 'Visualize your entire digital footprint across the web. See exactly where your data appears and what\'s at risk.',
-    },
-    {
       icon: Zap,
-      title: 'Hack Risk Prediction Engine',
-      description: 'Predictive AI models forecast potential attacks based on emerging threats and historical patterns.',
+      title: 'Fast Setup, No Security Team Required',
+      description: 'Get started in under 5 minutes. No complex configuration or dedicated security personnel needed.',
     },
     {
-      icon: Inbox,
-      title: 'Cyber Security Organizer',
-      description: 'Manage all your security alerts, incidents, and remediation tasks in one intelligent dashboard.',
+      icon: ShieldCheck,
+      title: 'Always-On Monitoring',
+      description: '24/7 automated surveillance of OSINT sources, paste sites, and underground forums for your business.',
     },
     {
-      icon: Brain,
-      title: 'Explainable Security AI',
-      description: 'Understand why threats matter. Our AI explains each finding in plain language with context and impact.',
+      icon: Users,
+      title: 'Built for SMBs',
+      description: 'Enterprise-grade security at SMB pricing. Protect your business without breaking the bank.',
+    },
+    {
+      icon: TrendingUp,
+      title: 'Proactive Defense',
+      description: 'Detect threats before they become breaches. Stay ahead of attackers with early warning intelligence.',
     },
   ]
 
@@ -33,13 +33,13 @@ export function USPSection() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm text-primary font-medium mb-4">
-            FEATURED
+            WHY RAKSHAK AI
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            What Makes Us Different
+            Why It Matters for SMBs
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Advanced AI capabilities that go beyond basic threat detection to provide comprehensive security intelligence.
+            Cybersecurity shouldn't be complicated or expensive. Rakshak AI brings enterprise protection to growing businesses.
           </p>
         </div>
 

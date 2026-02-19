@@ -1,31 +1,31 @@
 import { Card } from '@/components/ui/card'
-import { Waves, Brain, AlertCircle, Bell } from 'lucide-react'
+import { Search, Filter, Target, ShieldCheck } from 'lucide-react'
 
 export function HowItWorks() {
   const steps = [
     {
       number: '1',
-      icon: Waves,
-      title: 'We Scan Reddit & GitHub',
-      description: 'Our AI continuously monitors millions of public posts and repositories across the web.',
+      icon: Search,
+      title: 'Scraping',
+      description: 'Continuously crawl Reddit, GitHub, paste sites, and OSINT sources for mentions of your domains, emails, and assets.',
     },
     {
       number: '2',
-      icon: Brain,
-      title: 'Smart Threat Filtering',
-      description: 'Advanced algorithms filter noise and identify potential security risks related to your digital identity.',
+      icon: Filter,
+      title: 'Filtering',
+      description: 'Smart algorithms filter out noise and false positives, focusing only on relevant security threats to your business.',
     },
     {
       number: '3',
-      icon: AlertCircle,
-      title: 'AI Analyzes & Scores Risk',
-      description: 'Machine learning models analyze each threat and assign a risk score based on severity and relevance.',
+      icon: Target,
+      title: 'Scoring',
+      description: 'Each threat is assigned a risk score based on severity, exploitability, and potential business impact.',
     },
     {
       number: '4',
-      icon: Bell,
-      title: 'Real-Time Alerts & Guidance',
-      description: 'Receive instant notifications with actionable security recommendations and remediation steps.',
+      icon: ShieldCheck,
+      title: 'AI Validation',
+      description: 'Advanced AI models validate threats and provide actionable remediation steps with context-aware recommendations.',
     },
   ]
 
@@ -34,10 +34,10 @@ export function HowItWorks() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            How CyberSentinel AI Works
+            How Rakshak AI Works
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Our four-step process keeps you protected from emerging threats.
+            Our 4-layer AI pipeline detects threats in real-time with precision and speed.
           </p>
         </div>
 

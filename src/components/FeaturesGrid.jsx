@@ -1,44 +1,44 @@
 import { Card } from '@/components/ui/card'
 import { 
-  Key, 
-  Link as LinkIcon, 
-  BarChart3, 
+  Shield, 
+  Globe, 
+  Lock, 
   Bell, 
-  GitBranch, 
-  Timer 
+  Eye, 
+  Clock 
 } from 'lucide-react'
 
 export function FeaturesGrid() {
   const features = [
     {
-      icon: Key,
-      title: 'Credential Leak Detection',
-      description: 'Instantly detect if your usernames, passwords, or API keys have been exposed in data breaches.',
+      icon: Shield,
+      title: 'Leaked Credential Detection',
+      description: 'Scan paste sites, forums, and breach databases for exposed passwords, usernames, and employee credentials.',
     },
     {
-      icon: LinkIcon,
-      title: 'Phishing Link Checker',
-      description: 'Identify malicious links and phishing attempts targeting you across the web.',
+      icon: Lock,
+      title: 'API Key & Secret Monitoring',
+      description: 'Detect accidentally exposed API keys, tokens, and secrets in GitHub repos and public code snippets.',
     },
     {
-      icon: BarChart3,
-      title: 'Security Score Dashboard',
-      description: 'Track your security health over time with an easy-to-understand security score.',
+      icon: Globe,
+      title: 'Domain Surveillance',
+      description: 'Monitor for typosquatting, phishing domains, and unauthorized use of your brand across the web.',
+    },
+    {
+      icon: Eye,
+      title: 'SSL Certificate Tracking',
+      description: 'Track SSL certificate changes and detect suspicious certificates issued for your domains.',
     },
     {
       icon: Bell,
       title: 'Real-Time Threat Alerts',
-      description: 'Get instant notifications when threats are detected with recommended actions.',
+      description: 'Instant notifications via email, Slack, or webhook when critical threats are detected.',
     },
     {
-      icon: GitBranch,
-      title: 'GitHub Secret Scanner',
-      description: 'Scan your repositories for accidentally committed secrets and API keys.',
-    },
-    {
-      icon: Timer,
-      title: 'Personal Threat Timeline',
-      description: 'View a chronological history of all threats detected and how you responded.',
+      icon: Clock,
+      title: 'Alert History & Timeline',
+      description: 'Complete audit trail of all detected threats, actions taken, and security posture over time.',
     },
   ]
 
@@ -47,10 +47,10 @@ export function FeaturesGrid() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            Powerful Features for Complete Protection
+            Core Features
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Everything you need to monitor, detect, and respond to cyber threats.
+            Comprehensive threat detection and monitoring for small and medium businesses.
           </p>
         </div>
 

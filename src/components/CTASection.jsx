@@ -16,47 +16,47 @@ export function CTASection() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-sm text-primary font-medium">
             <Shield className="h-4 w-4" />
-            <span>Free account. No credit card required.</span>
+            <span>Start free trial. No credit card required.</span>
           </div>
 
           {/* Headline */}
           <h2 className="text-5xl md:text-6xl font-bold text-foreground text-balance">
-            Start Protecting Your 
+            Protect Your Business 
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-              Digital Life Today
+              From Cyber Threats
             </span>
           </h2>
 
           {/* Subheading */}
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Join thousands of individuals and organizations protecting themselves from cyber threats. Get started with CyberSentinel AI free today.
+            Join SMBs worldwide using Rakshak AI for proactive threat detection. Get started in minutes with our free trial.
           </p>
 
           {/* CTA Button */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button asChild size="lg" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white px-8">
               <Link href="#" className="group">
-                Create Free Account
+                Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="border-border">
-              <Link href="#contact">Contact Sales</Link>
+              <Link href="#contact">Talk to an Expert</Link>
             </Button>
           </div>
 
           {/* Trust badges */}
           <div className="pt-8 border-t border-border/30 flex flex-col sm:flex-row items-center justify-center gap-6">
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">50,000+</span> threats detected daily
+              <span className="font-semibold text-foreground">100+</span> SMBs protected
             </div>
             <div className="hidden sm:block h-4 w-px bg-border" />
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">99.9%</span> uptime SLA
+              <span className="font-semibold text-foreground">24/7</span> monitoring
             </div>
             <div className="hidden sm:block h-4 w-px bg-border" />
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">SOC 2</span> Type II Certified
+              <span className="font-semibold text-foreground">5 min</span> setup time
             </div>
           </div>
         </div>

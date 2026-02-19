@@ -32,7 +32,7 @@ export function Footer() {
           {/* Brand column */}
           <div className="flex flex-col gap-4">
             <Link href="/" className="text-lg font-bold text-primary">
-              CyberSentinel AI
+              Rakshak AI
             </Link>
             <p className="text-sm text-muted-foreground">
               Your personal AI-powered cybersecurity assistant.
@@ -94,7 +94,7 @@ export function Footer() {
         {/* Bottom section */}
         <div className="py-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} CyberSentinel AI. All rights reserved.
+            &copy; {currentYear} Rakshak AI. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">

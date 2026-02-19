@@ -1,22 +1,22 @@
 import { Card } from '@/components/ui/card'
-import { AlertTriangle, Zap, Eye } from 'lucide-react'
+import { AlertTriangle, DollarSign, Clock } from 'lucide-react'
 
 export function ProblemSection() {
   const problems = [
     {
       icon: AlertTriangle,
-      title: 'Data Breaches Happen Every Day',
-      description: 'Millions of credentials are leaked daily across public sources like Reddit, GitHub, and dark web forums.',
+      title: 'SMBs Are Prime Targets',
+      description: '43% of cyberattacks target small businesses, yet most lack dedicated security teams or monitoring tools.',
     },
     {
-      icon: Zap,
-      title: 'Your Credentials May Already Be Exposed',
-      description: 'Without monitoring, you won\'t know if your passwords, API keys, or sensitive data have been compromised.',
+      icon: DollarSign,
+      title: 'Breaches Are Expensive',
+      description: 'Average cost of a data breach for SMBs is $2.98M. Early detection can prevent catastrophic losses.',
     },
     {
-      icon: Eye,
-      title: 'Hackers Plan Attacks Publicly Online',
-      description: 'Attackers discuss vulnerabilities and targets in the open. We monitor these conversations to protect you.',
+      icon: Clock,
+      title: 'Threats Emerge 24/7',
+      description: 'Credentials leak on paste sites, GitHub repos expose secrets, and attackers discuss targets in real-time.',
     },
   ]
 
@@ -25,10 +25,10 @@ export function ProblemSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            The Problem With Traditional Security
+            Why SMBs Need Proactive Security
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Most people and organizations don't know their digital footprint is already exposed online.
+            Traditional security tools react after breaches happen. Rakshak AI detects threats before they strike.
           </p>
         </div>
 

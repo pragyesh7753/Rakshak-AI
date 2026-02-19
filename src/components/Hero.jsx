@@ -16,18 +16,18 @@ export function Hero() {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm text-primary font-medium">
                 <Shield className="h-4 w-4" />
-                <span>AI-Powered Threat Detection</span>
+                <span>4-Layer AI-Powered Detection</span>
               </div>
               
               <h1 className="text-5xl md:text-6xl font-bold text-balance leading-tight text-foreground">
-                Your Personal AI 
+                Detect Cyber Threats 
                 <span className="block bg-gradient-to-r from-primary via-secondary to-primary/80 bg-clip-text text-transparent">
-                  Cybersecurity Assistant
+                  Before They Strike
                 </span>
               </h1>
 
               <p className="text-xl text-muted-foreground leading-relaxed text-balance">
-                Monitor your digital footprint and detect cyber threats before hackers do. CyberSentinel AI scans the web for leaked credentials, exposed API keys, and security risks.
+                Real-time OSINT monitoring for SMBs. Rakshak AI scans Reddit, GitHub, and the dark web for leaked credentials, API keys, and vulnerabilities targeting your business.
               </p>
             </div>
 
@@ -47,16 +47,16 @@ export function Hero() {
             {/* Stats */}
             <div className="flex gap-8 pt-4 border-t border-border">
               <div>
-                <div className="text-2xl font-bold text-primary">10M+</div>
-                <div className="text-sm text-muted-foreground">Sources Monitored</div>
+                <div className="text-2xl font-bold text-primary">24/7</div>
+                <div className="text-sm text-muted-foreground">Continuous Scanning</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-primary">99.9%</div>
-                <div className="text-sm text-muted-foreground">Detection Accuracy</div>
+                <div className="text-2xl font-bold text-primary">4-Layer</div>
+                <div className="text-sm text-muted-foreground">AI Pipeline</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-primary">&lt;1min</div>
-                <div className="text-sm text-muted-foreground">Alert Response</div>
+                <div className="text-2xl font-bold text-primary">&lt;5min</div>
+                <div className="text-sm text-muted-foreground">Setup Time</div>
               </div>
             </div>
           </div>
@@ -92,12 +92,12 @@ export function Hero() {
                     <p className="text-sm font-medium text-foreground">Recent Alerts</p>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2 p-2 rounded bg-muted/50">
-                        <div className="h-2 w-2 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0" />
-                        <div className="text-xs text-muted-foreground">Potential credential found on Reddit</div>
+                        <div className="h-2 w-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
+                        <div className="text-xs text-muted-foreground">Admin access offer detected</div>
                       </div>
                       <div className="flex items-start gap-2 p-2 rounded bg-muted/50">
-                        <div className="h-2 w-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
-                        <div className="text-xs text-muted-foreground">GitHub API key flagged</div>
+                        <div className="h-2 w-2 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0" />
+                        <div className="text-xs text-muted-foreground">SSL certificate expiring soon</div>
                       </div>
                     </div>
                   </div>

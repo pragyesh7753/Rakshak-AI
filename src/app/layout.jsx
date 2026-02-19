@@ -1,13 +1,12 @@
 import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata = {
-  title: 'CyberSentinel AI - Your Personal Cybersecurity Assistant',
-  description: 'Monitor your digital footprint and detect cyber threats before hackers do. CyberSentinel AI scans the web for leaked credentials, exposed API keys, and security risks.',
+  title: 'Rakshak AI - Detect Cyber Threats Before They Strike',
+  description: 'Real-time OSINT threat detection for SMBs. 4-layer AI pipeline monitors Reddit, GitHub, and the dark web for leaked credentials, API keys, and vulnerabilities.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -30,10 +29,9 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className="font-sans antialiased">
         {children}
-        <Analytics />
       </body>
     </html>
   )
