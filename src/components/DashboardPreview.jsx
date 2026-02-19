@@ -16,7 +16,7 @@ export function DashboardPreview() {
 
         <div className="relative">
           {/* Glow background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 blur-3xl rounded-3xl" />
+          <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-secondary/10 to-primary/10 blur-3xl rounded-3xl" />
           
           {/* Dashboard mockup */}
           <div className="relative bg-card rounded-3xl border border-border overflow-hidden shadow-2xl">
@@ -50,7 +50,7 @@ export function DashboardPreview() {
                       <span className="text-primary font-medium">89%</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full w-[89%] bg-gradient-to-r from-primary to-secondary rounded-full" />
+                      <div className="h-full w-[89%] bg-linear-to-r from-primary to-secondary rounded-full" />
                     </div>
                   </div>
                 </Card>
@@ -71,7 +71,7 @@ export function DashboardPreview() {
               {/* Alerts list */}
               <div className="space-y-3">
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-foreground">Admin access offer detected on dark web</p>
                     <p className="text-xs text-muted-foreground mt-1">Threat actor offering admin credentials for your domain. Immediate password reset recommended.</p>
@@ -80,7 +80,7 @@ export function DashboardPreview() {
                 </div>
 
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-foreground">SSL certificate expiring in 7 days</p>
                     <p className="text-xs text-muted-foreground mt-1">Certificate for api.yourdomain.com expires soon. Renew to avoid service disruption.</p>
@@ -89,7 +89,7 @@ export function DashboardPreview() {
                 </div>
 
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-foreground">GitHub repository scan completed</p>
                     <p className="text-xs text-muted-foreground mt-1">Scanned 12 repositories. 1 API key found and rotated automatically.</p>
@@ -98,7 +98,7 @@ export function DashboardPreview() {
                 </div>
 
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-foreground">Domain surveillance: All clear</p>
                     <p className="text-xs text-muted-foreground mt-1">No typosquatting or phishing domains detected in the last 24 hours.</p>
@@ -118,7 +118,7 @@ export function DashboardPreview() {
                     {[0.4, 0.6, 0.5, 0.8, 0.7, 0.9, 0.7].map((height, i) => (
                       <div
                         key={i}
-                        className="flex-1 bg-gradient-to-t from-primary to-secondary rounded-t opacity-60 hover:opacity-100 transition-opacity"
+                        className="flex-1 bg-linear-to-t from-primary to-secondary rounded-t opacity-60 hover:opacity-100 transition-opacity"
                         style={{ height: `${height * 100}%` }}
                       />
                     ))}

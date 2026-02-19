@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
 import SummaryCards from '@/components/SummaryCards';
 import ThreatFeed from '@/components/ThreatFeed';
@@ -48,17 +48,23 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const threatsPerPage = 10;
 
+  // Ref to skip the initial mount in the page-change effect
+  const hasMounted = useRef(false);
+
   // Fetch data on mount
   useEffect(() => {
     fetchAllData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch threats when page changes
+  // Fetch threats when page changes (skip initial mount)
   useEffect(() => {
-    if (!loading) {
-      fetchThreats();
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
     }
-  }, [page]);
+    fetchThreats();
+  }, [fetchThreats]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -82,10 +88,10 @@ export default function Home() {
     setStats(data);
   };
 
-  const fetchThreats = async () => {
+  const fetchThreats = useCallback(async () => {
     const data = await getRecentThreats(threatsPerPage, page * threatsPerPage);
     setThreats(data);
-  };
+  }, [page]);
 
   const fetchAlerts = async () => {
     const data = await getAlerts();

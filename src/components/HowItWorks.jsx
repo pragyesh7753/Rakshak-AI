@@ -48,13 +48,13 @@ export function HowItWorks() {
               <div key={index} className="relative">
                 {/* Connector line */}
                 {index < steps.length - 1 && (
-                  <div className="absolute top-12 left-[calc(50%+24px)] right-[calc(-100%+24px)] h-0.5 bg-gradient-to-r from-primary to-secondary hidden md:block" />
+                  <div className="absolute top-12 left-[calc(50%+24px)] right-[calc(-100%+24px)] h-0.5 bg-linear-to-r from-primary to-secondary hidden md:block" />
                 )}
 
                 <Card className="relative p-8 border-border bg-background h-full">
                   {/* Step number badge */}
                   <div className="absolute -top-4 -left-4">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm">
+                    <div className="h-8 w-8 rounded-full bg-linear-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm">
                       {step.number}
                     </div>
                   </div>

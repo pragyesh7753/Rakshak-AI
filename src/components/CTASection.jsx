@@ -4,7 +4,7 @@ import { ArrowRight, Shield } from 'lucide-react'
 
 export function CTASection() {
   return (
-    <section id="get-started" className="py-16 md:py-24 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 relative overflow-hidden">
+    <section id="get-started" className="py-16 md:py-24 bg-linear-to-r from-primary/10 via-secondary/10 to-primary/10 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full mix-blend-multiply blur-3xl" />
@@ -22,7 +22,7 @@ export function CTASection() {
           {/* Headline */}
           <h2 className="text-5xl md:text-6xl font-bold text-foreground text-balance">
             Protect Your Business 
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+            <span className="block text-transparent bg-clip-text bg-linear-to-r from-primary to-secondary">
               From Cyber Threats
             </span>
           </h2>
@@ -34,7 +34,7 @@ export function CTASection() {
 
           {/* CTA Button */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button asChild size="lg" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white px-8">
+            <Button asChild size="lg" className="bg-linear-to-r from-primary to-secondary hover:opacity-90 text-white px-8">
               <Link href="#" className="group">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />

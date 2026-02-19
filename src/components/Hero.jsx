@@ -6,9 +6,9 @@ import { ArrowRight, Shield } from 'lucide-react'
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-background via-background to-muted/30 pt-20 pb-16 md:pt-32 md:pb-24">
+    <section className="relative overflow-hidden bg-linear-to-b from-background via-background to-muted/30 pt-20 pb-16 md:pt-32 md:pb-24">
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-      
+
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Left column - Content */}
@@ -18,10 +18,10 @@ export function Hero() {
                 <Shield className="h-4 w-4" />
                 <span>4-Layer AI-Powered Detection</span>
               </div>
-              
+
               <h1 className="text-5xl md:text-6xl font-bold text-balance leading-tight text-foreground">
-                Detect Cyber Threats 
-                <span className="block bg-gradient-to-r from-primary via-secondary to-primary/80 bg-clip-text text-transparent">
+                Detect Cyber Threats
+                <span className="block bg-linear-to-r from-primary via-secondary to-primary/80 bg-clip-text text-transparent">
                   Before They Strike
                 </span>
               </h1>
@@ -65,8 +65,8 @@ export function Hero() {
           <div className="relative hidden md:block">
             <div className="relative">
               {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 blur-3xl rounded-2xl" />
-              
+              <div className="absolute inset-0 bg-linear-to-r from-primary/20 to-secondary/20 blur-3xl rounded-2xl" />
+
               {/* Dashboard mockup */}
               <div className="relative bg-card rounded-2xl border border-border p-8 shadow-2xl">
                 <div className="space-y-4">
@@ -83,7 +83,7 @@ export function Hero() {
                       <span className="font-bold text-lg text-primary">8.9/10</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full w-[89%] bg-gradient-to-r from-primary to-secondary rounded-full" />
+                      <div className="h-full w-[89%] bg-linear-to-r from-primary to-secondary rounded-full" />
                     </div>
                   </div>
 
@@ -92,11 +92,11 @@ export function Hero() {
                     <p className="text-sm font-medium text-foreground">Recent Alerts</p>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2 p-2 rounded bg-muted/50">
-                        <div className="h-2 w-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
+                        <div className="h-2 w-2 rounded-full bg-red-500 mt-1.5 shrink-0" />
                         <div className="text-xs text-muted-foreground">Admin access offer detected</div>
                       </div>
                       <div className="flex items-start gap-2 p-2 rounded bg-muted/50">
-                        <div className="h-2 w-2 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0" />
+                        <div className="h-2 w-2 rounded-full bg-yellow-500 mt-1.5 shrink-0" />
                         <div className="text-xs text-muted-foreground">SSL certificate expiring soon</div>
                       </div>
                     </div>

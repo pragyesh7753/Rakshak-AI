@@ -28,7 +28,7 @@ export function USPSection() {
   return (
     <section className="relative py-16 md:py-24 bg-background overflow-hidden">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5" />
+      <div className="absolute inset-0 bg-linear-to-r from-primary/5 via-secondary/5 to-primary/5" />
       
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
@@ -39,7 +39,7 @@ export function USPSection() {
             Why It Matters for SMBs
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Cybersecurity shouldn't be complicated or expensive. Rakshak AI brings enterprise protection to growing businesses.
+            Cybersecurity shouldn&apos;t be complicated or expensive. Rakshak AI brings enterprise protection to growing businesses.
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export function USPSection() {
             return (
               <Card key={index} className="p-8 border-border bg-card hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                 <div className="flex flex-col gap-4">
-                  <div className="h-14 w-14 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                  <div className="h-14 w-14 rounded-lg bg-linear-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                     <Icon className="h-7 w-7 text-primary" />
                   </div>
                   <h3 className="text-2xl font-semibold text-foreground">{feature.title}</h3>
