@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { signOut } from "@/actions/auth";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
         </div>
       )}
       <p className="text-sm text-muted-foreground">Logged in as {user.email}</p>
-      <form action="/auth/signout" method="post">
+      <form action={signOut}>
         <button
           type="submit"
           className="text-sm underline text-muted-foreground hover:text-foreground"

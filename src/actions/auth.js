@@ -1,6 +1,8 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 /**
  * Inserts an organization row using the service role key (bypasses RLS).
@@ -22,4 +24,16 @@ export async function insertOrganization({ id, org_name, sector, domain }) {
   }
 
   return { success: true };
+}
+
+/**
+ * Signs the current user out and redirects to the login page.
+ */
+export async function signOut() {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error("Sign-out error:", error.message);
+  }
+  redirect("/login");
 }
