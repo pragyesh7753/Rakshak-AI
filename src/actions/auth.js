@@ -1,5 +1,7 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -22,4 +24,16 @@ export async function insertOrganization({ id, org_name, sector, domain }) {
   }
 
   return { success: true };
+}
+
+/**
+ * Signs the current user out and redirects to the login page.
+ */
+export async function signOut() {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    throw new Error(error.message);
+  }
+  redirect("/login");
 }
