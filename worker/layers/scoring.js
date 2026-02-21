@@ -5,6 +5,7 @@ import {
 } from "./threadDictonary.js";
 
 export function calculateThreatScore(text) {
+  if (!text) return 0;
   const lower = text.toLowerCase();
   let score = 0;
 
