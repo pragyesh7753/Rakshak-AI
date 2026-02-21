@@ -47,7 +47,6 @@ const LoginForm = () => {
 
     setLoading(false);
     router.push("/dashboard");
-    router.refresh();
   };
 
   return (
