@@ -198,8 +198,14 @@ const RegisterForm = () => {
                     onChange={handleChange}
                     placeholder="Create a secure password"
                     required
+                    minLength={8}
+                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
+                    title="Password must be at least 8 characters long and include uppercase, lowercase, and a number."
                     className="dark:bg-background"
                   />
+                  <FieldDescription className="text-xs text-muted-foreground">
+                    Must be at least 8 characters and include uppercase, lowercase, and a number.
+                  </FieldDescription>
                 </Field>
 
                 {/* Error */}
