@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,6 +53,11 @@ const LoginForm = () => {
   return (
     <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
       <div className="py-10 md:py-20 max-w-lg px-4 sm:px-0 mx-auto w-full">
+        <div className="mb-4">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 hover:text-primary-foreground transition">
+            ← Back to home
+          </Link>
+        </div>
         <Card className="max-w-lg px-6 py-8 sm:p-12 shadow-2xl">
           <CardHeader className="text-center gap-3 p-0">
             

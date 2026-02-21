@@ -35,7 +35,7 @@ export function CTASection() {
           {/* CTA Button */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button asChild size="lg" className="bg-linear-to-r from-primary to-secondary hover:opacity-90 text-white px-8">
-              <Link href="#" className="group">
+              <Link href="/register" className="group">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>

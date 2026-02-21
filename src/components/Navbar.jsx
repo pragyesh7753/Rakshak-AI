@@ -63,9 +63,12 @@ export function Navbar() {
           </div>
 
           {/* DESKTOP CTA */}
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-3">
+            <Button asChild variant="ghost" className="rounded-full px-5">
+              <Link href="/login">Login</Link>
+            </Button>
             <Button asChild className="rounded-full px-6">
-              <Link href="#get-started">Get Started</Link>
+              <Link href="/register">Get Started</Link>
             </Button>
           </div>
 
@@ -97,8 +100,13 @@ export function Navbar() {
               </Link>
             ))}
 
+            <Button asChild variant="ghost" className="rounded-full">
+              <Link href="/login" onClick={() => setIsOpen(false)}>
+                Login
+              </Link>
+            </Button>
             <Button asChild className="rounded-full mt-2">
-              <Link href="#get-started" onClick={() => setIsOpen(false)}>
+              <Link href="/register" onClick={() => setIsOpen(false)}>
                 Get Started
               </Link>
             </Button>

@@ -34,13 +34,13 @@ export function Hero() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white">
-                <Link href="#get-started" className="group">
+                <Link href="/register" className="group">
                   Get Started Free
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="border-border">
-                <Link href="#demo">View Demo</Link>
+                <Link href="/login">Sign In</Link>
               </Button>
             </div>
 
