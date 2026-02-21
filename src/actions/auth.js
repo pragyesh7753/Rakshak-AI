@@ -1,6 +1,20 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+
+/**
+ * Signs the current user out and redirects to the login page.
+ */
+export async function signOut() {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    throw new Error(error.message);
+  }
+  redirect("/login");
+}
 
 /**
  * Inserts an organization row using the service role key (bypasses RLS).
