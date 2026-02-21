@@ -21,6 +21,7 @@ import {
   getSimilarDomains,
 } from '@/lib/supabaseClient';
 
+
 import { Loader2, RefreshCw } from 'lucide-react';
 
 export default function Home() {

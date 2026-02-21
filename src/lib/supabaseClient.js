@@ -12,7 +12,7 @@ if (!isConfigured) {
 }
 
 export const supabase = isConfigured ? createClient(supabaseUrl, supabaseAnonKey) : null;
-export const useMockData = true; // Set to true to show mock data as requested
+export const useMockData = !isConfigured;
 
 // Fetch summary statistics
 export async function getSummaryStats() {
@@ -547,6 +547,9 @@ export async function getProcessingLogs(limit = 20) {
     return [];
   }
 }
+
+// --- Monitoring and Threat Detection Functions ---
+
 // Fetch similar domains
 export async function getSimilarDomains(organizationId = null) {
   if (useMockData) {
@@ -576,30 +579,26 @@ export async function getSimilarDomains(organizationId = null) {
         id: 'd4',
         domain_name: 'cyber-tech-portal.io',
         similarity_score: 0.88,
-        registration_date: '2024-03-05',
+        registration_date: '2024-03-01',
         status: 'active',
       },
       {
         id: 'd5',
         domain_name: 'cybertech-verify.com',
         similarity_score: 0.95,
-        registration_date: '2024-04-12',
+        registration_date: '2024-03-05',
         status: 'active',
-      },
+      }
     ];
   }
 
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from('similar_domains')
       .select('*')
+      .eq('organization_id', organizationId)
       .order('similarity_score', { ascending: false });
 
-    if (organizationId) {
-      query = query.eq('organization_id', organizationId);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   } catch (error) {
@@ -608,28 +607,28 @@ export async function getSimilarDomains(organizationId = null) {
   }
 }
 
-// Fetch activities for a specific domain
+// Fetch domain activities
 export async function getDomainActivities(domainId) {
   if (useMockData) {
     const activities = {
       'd1': [
-        { id: 'a1', activity_type: 'DNS Update', description: 'Updated MX records to point to suspicious mail server (mx.malicious-host.su).', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 2 * 24 * 3600000).toISOString() },
-        { id: 'a2', activity_type: 'SSL Issued', description: 'Let\'s Encrypt certificate issued for domain.', severity: 'low', is_suspicious: false, detected_at: new Date(Date.now() - 5 * 24 * 3600000).toISOString() },
+        { id: 'a1', activity_type: 'DNS Update', description: 'Updated MX records to point to suspiciously similar mail server.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+        { id: 'a2', activity_type: 'SSL Issued', description: 'Let\'s Encrypt certificate issued for domain.', severity: 'low', is_suspicious: false, detected_at: new Date(Date.now() - 3600000 * 96).toISOString() },
       ],
       'd2': [
-        { id: 'a3', activity_type: 'Cloning Detected', description: 'Webpage content matches 95% of cybertech.example.com login page.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 1 * 24 * 3600000).toISOString() },
-        { id: 'a4', activity_type: 'Traffic Spike', description: 'Sudden increase in traffic from social media referrals (Facebook/WhatsApp).', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 12 * 3600000).toISOString() },
+        { id: 'a3', activity_type: 'Cloning Detected', description: 'Webpage content matches 95% of official login page.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 5).toISOString() },
+        { id: 'a4', activity_type: 'Traffic Spike', description: 'Sudden increase in traffic from social media referrals.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 36).toISOString() },
       ],
       'd3': [
-        { id: 'a5', activity_type: 'Domain Parked', description: 'Standard parking page detected with advertising links.', severity: 'low', is_suspicious: false, detected_at: new Date(Date.now() - 30 * 24 * 3600000).toISOString() },
+        { id: 'a5', activity_type: 'Domain Parked', description: 'Standard parking page detected with advertising links.', severity: 'low', is_suspicious: false, detected_at: new Date(Date.now() - 3600000 * 120).toISOString() },
       ],
       'd4': [
-        { id: 'a6', activity_type: 'New API Endpoint', description: 'Exposed /api/v1/login endpoint with unsecured configurations.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3 * 3600000).toISOString() },
-        { id: 'a7', activity_type: 'Content Update', description: 'Portal content updated with branding images from your official site.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 8 * 3600000).toISOString() },
+        { id: 'a6', activity_type: 'New API Endpoint', description: 'Exposed /api/v1/login endpoint with unsecured configurations.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 24).toISOString() },
+        { id: 'a7', activity_type: 'Content Update', description: 'Portal content updated with official branding.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 48).toISOString() },
       ],
       'd5': [
-        { id: 'a8', activity_type: 'Phishing Detected', description: 'AI analysis confirmed phishing page targeting employee credentials.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 2 * 3600000).toISOString() },
-        { id: 'a9', activity_type: 'DGA Pattern', description: 'Domain name follows a pseudo-random generated pattern used by C2 servers.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 5 * 3600000).toISOString() },
+        { id: 'a8', activity_type: 'Phishing Detected', description: 'AI analysis confirmed phishing page targeting employee credentials.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 12).toISOString() },
+        { id: 'a9', activity_type: 'DGA Pattern', description: 'Domain name follows a pseudo-random generated pattern used by C2 servers.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 72).toISOString() },
       ]
     };
     return activities[domainId] || [];
@@ -654,13 +653,12 @@ export async function getDomainActivities(domainId) {
 export async function getGlobalDomainActivities(limit = 20) {
   if (useMockData) {
     const allActivities = [
-      { id: 'a1', domain_name: 'cybertech-support.com', activity_type: 'DNS Update', description: 'Updated MX records to point to suspicious mail server (mx.malicious-host.su).', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+      { id: 'a1', domain_name: 'cybertech-support.com', activity_type: 'DNS Update', description: 'Updated MX records to point to suspiciously similar mail server.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 2).toISOString() },
       { id: 'a3', domain_name: 'cybertech-login.net', activity_type: 'Cloning Detected', description: 'Webpage content matches 95% of official login page.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 5).toISOString() },
       { id: 'a8', domain_name: 'cybertech-verify.com', activity_type: 'Phishing Detected', description: 'AI analysis confirmed phishing page targeting employee credentials.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 12).toISOString() },
       { id: 'a6', domain_name: 'cyber-tech-portal.io', activity_type: 'New API Endpoint', description: 'Exposed /api/v1/login endpoint with unsecured configurations.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 24).toISOString() },
-      { id: 'a4', domain_name: 'cybertech-login.net', activity_type: 'Traffic Spike', description: 'Sudden increase in traffic from social media referrals (Facebook/WhatsApp).', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 36).toISOString() },
-      { id: 'a7', domain_name: 'cyber-tech-portal.io', activity_type: 'Content Update', description: 'Portal content updated with branding images from your official site.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 48).toISOString() },
-      { id: 'a9', domain_name: 'cybertech-verify.com', activity_type: 'DGA Pattern', description: 'Domain name follows a pseudo-random generated pattern used by C2 servers.', severity: 'high', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 72).toISOString() },
+      { id: 'a4', domain_name: 'cybertech-login.net', activity_type: 'Traffic Spike', description: 'Sudden increase in traffic from social media referrals.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 36).toISOString() },
+      { id: 'a7', domain_name: 'cyber-tech-portal.io', activity_type: 'Content Update', description: 'Portal content updated with official branding.', severity: 'medium', is_suspicious: true, detected_at: new Date(Date.now() - 3600000 * 48).toISOString() },
       { id: 'a2', domain_name: 'cybertech-support.com', activity_type: 'SSL Issued', description: 'Let\'s Encrypt certificate issued for domain.', severity: 'low', is_suspicious: false, detected_at: new Date(Date.now() - 3600000 * 96).toISOString() },
       { id: 'a5', domain_name: 'cybertach.com', activity_type: 'Domain Parked', description: 'Standard parking page detected with advertising links.', severity: 'low', is_suspicious: false, detected_at: new Date(Date.now() - 3600000 * 120).toISOString() },
     ];
@@ -714,7 +712,6 @@ export async function getSystemSecurityStatus() {
       ]
     };
   }
-  // In real implementation, this would fetch from a specialized security events table
   return null;
 }
 
