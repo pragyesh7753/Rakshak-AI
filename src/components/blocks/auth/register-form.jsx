@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { insertOrganization } from "@/actions/auth";
+import { insertOrganization, deleteAuthUser } from "@/actions/auth";
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -83,7 +83,18 @@ const RegisterForm = () => {
     });
 
     if (dbError) {
-      setError(dbError.message);
+      // Roll back the auth user to avoid an inconsistent state where the user
+      // exists in Supabase Auth but has no corresponding organization record.
+      const { error: rollbackError } = await deleteAuthUser(userId);
+      if (rollbackError) {
+        setError(
+          "Registration failed and cleanup was unsuccessful. Please contact support."
+        );
+      } else {
+        setError(
+          "Registration failed: could not create your organization record. Please try again."
+        );
+      }
       setLoading(false);
       return;
     }
