@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -31,8 +32,10 @@ export function Footer() {
         <div className="py-16 grid md:grid-cols-4 gap-8 mb-8">
           {/* Brand column */}
           <div className="flex flex-col gap-4">
-            <Link href="/" className="text-lg font-bold text-primary">
-              Rakshak AI
+            <Link href="/" className="inline-block">
+              <div className="relative h-16 w-40">
+                <Image src="/logo.png" alt="Rakshak AI" fill className="object-contain" />
+              </div>
             </Link>
             <p className="text-sm text-muted-foreground">
               Your personal AI-powered cybersecurity assistant.

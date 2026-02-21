@@ -1,6 +1,7 @@
 'use client';
 
-import { Shield, LayoutDashboard, Bell, User, Activity, X, Globe } from 'lucide-react';
+import { LayoutDashboard, Bell, User, Activity, X, Globe } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen }) {
   const menuItems = [
@@ -38,12 +39,8 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-cyan-500 rounded-lg flex items-center justify-center">
-                <Shield className="w-6 h-6 text-gray-900" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">Rakshak AI</h1>
-                <p className="text-xs text-gray-400">Threat Intelligence</p>
+              <div className="relative h-14 w-36">
+                <Image src="/logo.png" alt="Rakshak AI" fill className="object-contain" />
               </div>
             </div>
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,18 +53,20 @@ const LoginForm = () => {
 
   return (
     <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
-      <div className="py-10 md:py-20 max-w-lg px-4 sm:px-0 mx-auto w-full">
+      <div className="md:py-8 max-w-lg px-4 sm:px-0 mx-auto w-full">
         <div className="mb-4">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 hover:text-primary-foreground transition">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground hover:text-white dark:text-muted-foreground dark:hover:text-foreground transition">
             ← Back to home
           </Link>
         </div>
-        <Card className="max-w-lg px-6 py-8 sm:p-12 shadow-2xl">
+        <Card className="max-w-lg px-6 py-2 sm:p-6 shadow-2xl">
           <CardHeader className="text-center gap-3 p-0">
             
             {/* Logo */}
-            <div className="text-3xl font-bold tracking-tight">
-              🛡️ Rakshak AI
+            <div className="flex justify-center">
+              <div className="relative h-24 w-48">
+                <Image src="/logo.png" alt="Rakshak AI" fill className="object-contain" />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -111,7 +114,7 @@ const LoginForm = () => {
                 </Field>
 
                 {/* Remember device */}
-                <Field className="flex flex-row items-center justify-between w-full">
+                <div className="flex flex-row items-center justify-between w-full">
                   <div className="flex items-center gap-3">
                     <Checkbox id="remember" defaultChecked className="cursor-pointer" />
                     <FieldLabel
@@ -124,7 +127,7 @@ const LoginForm = () => {
                   <a href="#" className="text-sm font-medium">
                     Forgot password?
                   </a>
-                </Field>
+                </div>
 
                 {/* Error */}
                 {error && (

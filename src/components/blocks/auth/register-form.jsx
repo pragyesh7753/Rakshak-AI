@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -100,118 +101,106 @@ const RegisterForm = () => {
 
   return (
     <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
-      <div className="py-10 md:py-20 max-w-lg px-4 sm:px-0 mx-auto w-full">
+      <div className="py-6 max-w-xl px-4 sm:px-0 mx-auto w-full">
         <div className="mb-4">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 hover:text-primary-foreground transition">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground hover:text-white dark:text-muted-foreground dark:hover:text-foreground transition">
             ← Back to home
           </Link>
         </div>
-        <Card className="max-w-lg px-6 py-8 sm:p-12 relative shadow-2xl">
-          <CardHeader className="text-center gap-3 p-0">
-            
+        <Card className="max-w-xl px-8 py-3 sm:p-7 relative shadow-2xl">
+          <CardHeader className="text-center gap-1 p-0">
             {/* Logo */}
-            <div className="text-3xl font-bold tracking-tight">
-              🛡️ Rakshak AI
+            <div className="flex justify-center">
+              <div className="relative h-24 w-48">
+                <Image src="/logo.png" alt="Rakshak AI" fill className="object-contain" />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1">
               <CardTitle className="text-2xl font-semibold">
                 Protect Your Organization
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Cyber Threat Early Warning System for Indian Organizations
               </CardDescription>
             </div>
           </CardHeader>
 
-          <CardContent className="p-0 mt-6">
+          <CardContent className="p-0 mt-5">
             <form onSubmit={handleSubmit}>
-              <FieldGroup className="gap-6">
+              <FieldGroup className="gap-4">
 
-                {/* Organization Name */}
-                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">
-                    Organization Name
-                  </FieldLabel>
-                  <Input
-                    type="text"
-                    name="org_name"
-                    value={formData.org_name}
-                    onChange={handleChange}
-                    placeholder="SATIM College"
-                    required
-                    className="dark:bg-background"
-                  />
-                </Field>
+                {/* Row 1: Org Name + Sector */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Field className="gap-1.5">
+                    <FieldLabel className="text-sm text-muted-foreground">Organization Name</FieldLabel>
+                    <Input
+                      type="text"
+                      name="org_name"
+                      value={formData.org_name}
+                      onChange={handleChange}
+                      placeholder="SATIM College"
+                      required
+                      className="dark:bg-background"
+                    />
+                  </Field>
+                  <Field className="gap-1.5">
+                    <FieldLabel className="text-sm text-muted-foreground">Sector</FieldLabel>
+                    <Input
+                      type="text"
+                      name="sector"
+                      value={formData.sector}
+                      onChange={handleChange}
+                      placeholder="Education / Fintech"
+                      required
+                      className="dark:bg-background"
+                    />
+                  </Field>
+                </div>
 
-                {/* Sector */}
-                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">
-                    Sector
-                  </FieldLabel>
-                  <Input
-                    type="text"
-                    name="sector"
-                    value={formData.sector}
-                    onChange={handleChange}
-                    placeholder="Education / Fintech / Healthcare"
-                    required
-                    className="dark:bg-background"
-                  />
-                </Field>
-
-                {/* Domain */}
-                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">
-                    Domain / Website
-                  </FieldLabel>
-                  <Input
-                    type="text"
-                    name="domain"
-                    value={formData.domain}
-                    onChange={handleChange}
-                    placeholder="satimcollege.edu.in"
-                    required
-                    className="dark:bg-background"
-                  />
-                </Field>
-
-                {/* Email */}
-                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">
-                    Work Email
-                  </FieldLabel>
-                  <Input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="admin@organization.com"
-                    required
-                    className="dark:bg-background"
-                  />
-                </Field>
+                {/* Row 2: Domain + Email */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Field className="gap-1.5">
+                    <FieldLabel className="text-sm text-muted-foreground">Domain / Website</FieldLabel>
+                    <Input
+                      type="text"
+                      name="domain"
+                      value={formData.domain}
+                      onChange={handleChange}
+                      placeholder="satimcollege.edu.in"
+                      required
+                      className="dark:bg-background"
+                    />
+                  </Field>
+                  <Field className="gap-1.5">
+                    <FieldLabel className="text-sm text-muted-foreground">Work Email</FieldLabel>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="admin@org.com"
+                      required
+                      className="dark:bg-background"
+                    />
+                  </Field>
+                </div>
 
                 {/* Password */}
                 <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">
-                    Password
-                  </FieldLabel>
+                  <FieldLabel className="text-sm text-muted-foreground">Password</FieldLabel>
                   <Input
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Create a secure password"
+                    placeholder="Min 8 chars, upper + lower + number"
                     required
                     minLength={8}
                     pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
                     title="Password must be at least 8 characters long and include uppercase, lowercase, and a number."
                     className="dark:bg-background"
                   />
-                  <FieldDescription className="text-xs text-muted-foreground">
-                    Must be at least 8 characters and include uppercase, lowercase, and a number.
-                  </FieldDescription>
                 </Field>
 
                 {/* Error */}
@@ -220,7 +209,7 @@ const RegisterForm = () => {
                 )}
 
                 {/* CTA */}
-                <Field className="gap-4">
+                <Field className="gap-3">
                   <Button
                     type="submit"
                     size="lg"
