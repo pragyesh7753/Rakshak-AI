@@ -23,3 +23,20 @@ export async function insertOrganization({ id, org_name, sector, domain }) {
 
   return { success: true };
 }
+
+/**
+ * Deletes an auth user by ID using the service role key.
+ * Used to roll back a Supabase Auth sign-up when a subsequent operation fails,
+ * preventing the user from being left in an inconsistent state.
+ */
+export async function deleteAuthUser(userId) {
+  if (!userId) {
+    return { error: "No user ID provided" };
+  }
+  const supabase = createAdminClient();
+  const { error } = await supabase.auth.admin.deleteUser(userId);
+  if (error) {
+    return { error: error.message };
+  }
+  return { success: true };
+}
