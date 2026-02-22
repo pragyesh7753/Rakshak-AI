@@ -25,28 +25,29 @@ export async function updateSession(request) {
     }
   );
 
-  // Refresh the session — do NOT add any logic between createServerClient and getUser.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 
-  const authRoutes = ["/login", "/register"];
-  const protectedRoutes = ["/dashboard"];
+  // Skip redirect logic for Next.js Server Action requests — they POST to the
+  // current page and must not be intercepted with a redirect, otherwise the
+  // client gets an unexpected 307 response and throws a runtime error.
+  const isServerAction = request.headers.has("next-action");
 
-  // Redirect unauthenticated users away from protected routes
-  if (!user && protectedRoutes.some((r) => pathname.startsWith(r))) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
+  if (!isServerAction) {
+    // Redirect unauthenticated users from protected routes
+    if (!user && pathname.startsWith('/dashboard')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
 
-  // Redirect authenticated users away from auth pages
-  if (user && authRoutes.some((r) => pathname.startsWith(r))) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    // Redirect authenticated users from auth pages
+    if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
