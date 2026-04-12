@@ -6,13 +6,5 @@ export const redditQueries = [
   "sql injection",
   "data breach",
   "selling access",
-  "vulnerability found"
-];
-
-export const subreddits = [
-  "cybersecurity",
-  "netsec",
-  "hacking",
-  "bugbounty",
-  "ReverseEngineering"
+  "vulnerability found",
 ];
