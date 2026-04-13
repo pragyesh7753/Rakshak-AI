@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@clerk/clerk-react';
 import { getSummaryStats, getRecentThreats, getThreatDetails } from '@/features/threats/services/threats.service';
 import { getAlerts, markAlertAsRead } from '@/features/alerts/services/alerts.service';
 import { getOrganization } from '@/features/organization/services/organization.service';
 import { getProcessingLogs } from '@/features/system/services/logs.service';
+import { useAuthedApi } from '@/hooks/use-authed-api';
 
 const THREATS_PER_PAGE = 10;
 
@@ -14,6 +15,9 @@ const THREATS_PER_PAGE = 10;
  * Keeps the page component lean and purely presentational.
  */
 export function useDashboardData() {
+  const { callService, isAuthLoaded, isSignedIn } = useAuthedApi();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,45 +39,55 @@ export function useDashboardData() {
   // ---------------------------------------------------------------------------
 
   const fetchStats = useCallback(async () => {
-    const data = await getSummaryStats();
+    const data = await callService(getSummaryStats);
     setStats(data);
-  }, []);
+  }, [callService]);
 
   const fetchThreats = useCallback(async () => {
-    const data = await getRecentThreats(THREATS_PER_PAGE, page * THREATS_PER_PAGE);
+    const data = await callService(getRecentThreats, THREATS_PER_PAGE, page * THREATS_PER_PAGE);
     setThreats(data);
-  }, [page]);
+  }, [callService, page]);
 
   const fetchAlerts = useCallback(async () => {
-    const data = await getAlerts();
+    const data = await callService(getAlerts);
     setAlerts(data);
-  }, []);
+  }, [callService]);
 
-  const fetchOrganization = useCallback(async (userId) => {
-    const data = await getOrganization(userId ?? '00000000-0000-0000-0000-000000000000');
+  const fetchOrganization = useCallback(async () => {
+    const data = await callService(getOrganization);
     setOrganization(data);
-  }, []);
+  }, [callService]);
 
   const fetchLogs = useCallback(async () => {
-    const data = await getProcessingLogs(20);
+    const data = await callService(getProcessingLogs, 20);
     setLogs(data);
-  }, []);
+  }, [callService]);
 
   // ---------------------------------------------------------------------------
   // Aggregate fetcher (initial load + refresh)
   // ---------------------------------------------------------------------------
 
   const fetchAllData = useCallback(async () => {
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const supabase = createClient();
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
+      setUser(
+        clerkUser
+          ? {
+              id: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress ?? clerkUser.emailAddresses?.[0]?.emailAddress,
+            }
+          : null
+      );
 
       await Promise.all([
         fetchStats(),
         fetchThreats(),
         fetchAlerts(),
-        fetchOrganization(currentUser?.id),
+        fetchOrganization(),
         fetchLogs(),
       ]);
     } catch (error) {
@@ -85,9 +99,12 @@ export function useDashboardData() {
 
   // Initial load
   useEffect(() => {
+    if (!isAuthLoaded || !isUserLoaded) {
+      return;
+    }
     fetchAllData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthLoaded, isUserLoaded, isSignedIn, clerkUser?.id]);
 
   // Re-fetch threats when page changes (skip on first mount to avoid double-fetch)
   useEffect(() => {
@@ -109,7 +126,7 @@ export function useDashboardData() {
   };
 
   const handleThreatClick = async (threatId) => {
-    const details = await getThreatDetails(threatId);
+    const details = await callService(getThreatDetails, threatId);
     if (details) {
       setSelectedThreat(details);
       setShowModal(true);
@@ -118,7 +135,7 @@ export function useDashboardData() {
 
   const handleAlertClick = async (alert) => {
     if (!alert.is_read) {
-      await markAlertAsRead(alert.id);
+      await callService(markAlertAsRead, alert.id);
       // Refresh alerts and stats in parallel — no need to await sequentially
       Promise.all([fetchAlerts(), fetchStats()]);
     }

@@ -3,7 +3,7 @@ import { Organization } from "../../models/Organization.js";
 import { ProcessingLog } from "../../models/ProcessingLog.js";
 import { RawPost } from "../../models/RawPost.js";
 import { Threat } from "../../models/Threat.js";
-import { model } from "../clients/geminiClient.js";
+import { generateLlamaResponse, isSambaNovaConfigured } from "../clients/sambanovaClient.js";
 import { containsThreatWords } from "./filterThread.js";
 import { calculateThreatScore, isHighRisk } from "./scoring.js";
 
@@ -34,6 +34,8 @@ async function logProcessing(status, message) {
 }
 
 export async function analyzePosts() {
+  const llamaEnabled = isSambaNovaConfigured();
+
   await logProcessing("running", "[LIVE] Starting AI analysis pipeline");
 
   const posts = await RawPost.find({ processed: false }).sort({ createdAt: 1 }).limit(150);
@@ -72,7 +74,7 @@ export async function analyzePosts() {
         summary: post.content.slice(0, 300),
       };
 
-      if (model) {
+      if (llamaEnabled) {
         const prompt = `
 Analyze this forum post for cyber threat intelligence.
 
@@ -92,8 +94,8 @@ Return STRICT JSON ONLY:
 }
 `;
 
-        const result = await model.generateContent(prompt);
-        analysis = extractJsonPayload(result.response.text());
+  const responseText = await generateLlamaResponse(prompt);
+  analysis = extractJsonPayload(responseText);
       }
 
       if (!analysis.is_threat) {
@@ -113,7 +115,7 @@ Return STRICT JSON ONLY:
           ? analysis.organizations_mentioned
           : [],
         summary: analysis.summary || post.content.slice(0, 300),
-        aiConfidence: model ? 0.9 : 0.6,
+        aiConfidence: llamaEnabled ? 0.9 : 0.6,
       });
 
       const sectorRegex = new RegExp(`^${(analysis.sector ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");

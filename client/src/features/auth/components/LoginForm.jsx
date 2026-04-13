@@ -1,158 +1,150 @@
 "use client";
 
+import { useAuth, useClerk, useSignIn } from "@clerk/clerk-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createClient } from "@/lib/supabase/client";
+import { Input } from "@/components/ui/input";
+import {
+  checkBackendHealth,
+  createTokenGetter,
+  verifyBackendSession,
+} from "@/features/auth/services/backend-auth.service";
 
 const LoginForm = () => {
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { getToken } = useAuth();
+  const { signOut } = useClerk();
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [trustDevice, setTrustDevice] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const supabase = createClient();
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!isLoaded) {
       return;
     }
 
-    setLoading(false);
-    navigate("/dashboard");
-  };
+    setError("");
+    setLoading(true);
+
+    try {
+      const backendReady = await checkBackendHealth();
+      if (!backendReady) {
+        setError("Backend server is unavailable. Start backend and try again.");
+        return;
+      }
+
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        const getBackendToken = createTokenGetter(getToken);
+
+        try {
+          await verifyBackendSession(getBackendToken);
+        } catch {
+          await signOut();
+          setError("Backend session verification failed. Please try again after backend starts.");
+          return;
+        }
+
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      setError("Sign in requires additional steps. Please complete verification in Clerk.");
+    } catch (authError) {
+      const message = authError?.errors?.[0]?.longMessage ?? authError?.message ?? "Failed to sign in.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
       <div className="md:py-8 max-w-lg px-4 sm:px-0 mx-auto w-full">
         <div className="mb-4">
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground hover:text-white dark:text-muted-foreground dark:hover:text-foreground transition">
-            ← Back to home
+            {'<- Back to home'}
           </Link>
         </div>
-        <Card className="max-w-lg px-6 py-2 sm:p-6 shadow-2xl">
-          <CardHeader className="text-center gap-3 p-0">
 
-            {/* Logo */}
-            <div className="flex justify-center">
-              <img src="/logo.png" alt="Rakshak AI" className="h-24 w-48 object-contain" />
+        <div className="bg-card border border-border shadow-2xl rounded-xl px-6 py-8 sm:p-8">
+          <div className="flex justify-center mb-6">
+            <img src="/logo.png" alt="Rakshak AI" className="h-16 w-40 object-contain" />
+          </div>
+
+          <h1 className="text-4xl font-semibold text-white text-center">Access Threat Dashboard</h1>
+          <p className="mt-2 text-lg text-gray-400 text-center">Monitor cyber threats targeting your organization</p>
+
+          <form className="mt-10 space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label className="mb-2 block text-sm text-gray-300">Work Email</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="admin@organization.com"
+                required
+                className="dark:bg-background"
+              />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl font-semibold">
-                Access Threat Dashboard
-              </CardTitle>
-              <CardDescription>
-                Monitor cyber threats targeting your organization
-              </CardDescription>
+            <div>
+              <label className="mb-2 block text-sm text-gray-300">Password</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Enter your password"
+                required
+                className="dark:bg-background"
+              />
             </div>
-          </CardHeader>
 
-          <CardContent className="p-0 mt-6">
-            <form onSubmit={handleSubmit}>
-              <FieldGroup className="gap-6">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-3 text-sm text-white cursor-pointer">
+                <Checkbox
+                  checked={trustDevice}
+                  onCheckedChange={(checked) => setTrustDevice(Boolean(checked))}
+                  className="cursor-pointer"
+                />
+                Trust this device
+              </label>
 
-                {/* Email */}
-                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">
-                    Work Email
-                  </FieldLabel>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@organization.com"
-                    required
-                    className="dark:bg-background"
-                  />
-                </Field>
+              <button
+                type="button"
+                className="text-sm font-medium text-white hover:text-cyan-300 transition"
+                onClick={() => setError("Please use Clerk account recovery flow for password reset.")}
+              >
+                Forgot password?
+              </button>
+            </div>
 
-                {/* Password */}
-                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">
-                    Password
-                  </FieldLabel>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    required
-                    className="dark:bg-background"
-                  />
-                </Field>
+            {error && <p className="text-sm text-red-400">{error}</p>}
 
-                {/* Remember device */}
-                <div className="flex flex-row items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    <Checkbox id="remember" defaultChecked className="cursor-pointer" />
-                    <FieldLabel
-                      htmlFor="remember"
-                      className="text-sm cursor-pointer">
-                      Trust this device
-                    </FieldLabel>
-                  </div>
+            <Button type="submit" className="w-full rounded-lg" disabled={loading || !isLoaded}>
+              {loading ? "Signing in..." : "Open Security Dashboard 🔐"}
+            </Button>
 
-                  <a href="#" className="text-sm font-medium">
-                    Forgot password?
-                  </a>
-                </div>
-
-                {/* Error */}
-                {error && (
-                  <p className="text-sm text-red-500 text-center">{error}</p>
-                )}
-
-                {/* CTA */}
-                <Field className="gap-4">
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="rounded-lg w-full"
-                    disabled={loading}
-                  >
-                    {loading ? "Signing in…" : "Open Security Dashboard 🔐"}
-                  </Button>
-
-                  <FieldDescription className="text-center text-sm text-muted-foreground">
-                    New organization?{" "}
-                    <Link to="/register" className="font-medium">
-                      Create account
-                    </Link>
-                  </FieldDescription>
-                </Field>
-
-              </FieldGroup>
-            </form>
-          </CardContent>
-        </Card>
+            <p className="text-center text-sm text-gray-400 pt-1">
+              New organization?{' '}
+              <Link to="/register" className="text-white underline underline-offset-4 hover:text-cyan-300">
+                Create account
+              </Link>
+            </p>
+          </form>
+        </div>
       </div>
     </section>
   );

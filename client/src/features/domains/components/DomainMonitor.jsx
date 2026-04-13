@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { getSimilarDomains, getDomainActivities, getGlobalDomainActivities } from '@/features/domains/services/domains.service';
+import { useAuthedApi } from '@/hooks/use-authed-api';
 import { getSeverityBadgeClasses } from '@/shared/utils/severity';
 import { Globe, AlertTriangle, CheckCircle, ShieldAlert, Clock, ListFilter, Terminal } from 'lucide-react';
 
 export default function DomainMonitor() {
+  const { callService } = useAuthedApi();
   const [domains, setDomains] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -22,7 +24,7 @@ export default function DomainMonitor() {
 
   const fetchGlobalLogs = async () => {
     setLoadingLogs(true);
-    const data = await getGlobalDomainActivities(15);
+    const data = await callService(getGlobalDomainActivities, 15);
     setGlobalLogs(data);
     setLoadingLogs(false);
   };
@@ -30,14 +32,14 @@ export default function DomainMonitor() {
   const handleDomainClick = async (domain) => {
     setSelectedDomain(domain);
     setLoadingActivities(true);
-    const data = await getDomainActivities(domain.id);
+    const data = await callService(getDomainActivities, domain.id);
     setActivities(data);
     setLoadingActivities(false);
   };
 
   const fetchDomains = async () => {
     setLoading(true);
-    const data = await getSimilarDomains();
+    const data = await callService(getSimilarDomains);
     setDomains(data);
     if (data.length > 0) {
       handleDomainClick(data[0]);

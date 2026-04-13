@@ -1,49 +1,31 @@
 /**
  * Organisation service
  * Handles organisation profile reads.
- * Bug fixed: query.eq() result was previously not assigned back, so the
- * .eq('id', organizationId) filter was silently ignored.
  */
-import { createClient } from '@/lib/supabase/client';
-
-const PLACEHOLDER_ID = '00000000-0000-0000-0000-000000000000';
-
-function isMockMode() {
-  const url = import.meta.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const key = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  return !(url.startsWith('http') && key.length > 20);
-}
+import { apiRequest } from '@/lib/api/client';
 
 /**
  * Fetch an organisation row by user ID.
- * Falls back to the first row when ID is a placeholder (dev convenience).
- * @param {string | null} organizationId
+ * @param {() => Promise<string | null>} getToken
  */
-export async function getOrganization(organizationId) {
-  if (isMockMode()) {
-    return {
-      id: organizationId,
-      org_name: 'CyberTech Industries',
-      sector: 'Technology',
-      domain: 'cybertech.example.com',
-      keywords: ['ransomware', 'data breach', 'vulnerability', 'exploit', 'phishing'],
-    };
-  }
-
+export async function getOrganization(getToken) {
   try {
-    const supabase = createClient();
-    let query = supabase.from('organizations').select('*');
-
-    // Fix: assign the filtered query back to the variable
-    if (organizationId && organizationId !== PLACEHOLDER_ID) {
-      query = query.eq('id', organizationId);
-    }
-
-    const { data, error } = await query.limit(1).maybeSingle();
-    if (error) throw error;
-    return data;
+    return await apiRequest('/organizations/me', { getToken });
   } catch (error) {
     console.error('[organization.service] getOrganization:', error);
     return null;
   }
+}
+
+/**
+ * Create or update the signed-in user's organization profile.
+ * @param {{ org_name: string, sector: string, domain: string, keywords?: string[] }} payload
+ * @param {() => Promise<string | null>} getToken
+ */
+export async function upsertOrganization(payload, getToken) {
+  return apiRequest('/organizations/me', {
+    method: 'POST',
+    body: payload,
+    getToken,
+  });
 }

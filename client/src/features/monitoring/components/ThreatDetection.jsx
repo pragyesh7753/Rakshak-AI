@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getSystemSecurityStatus, getSecurityThreatLogs } from '@/features/monitoring/services/monitoring.service';
+import { useAuthedApi } from '@/hooks/use-authed-api';
 import { getRiskBadgeClasses } from '@/shared/utils/severity';
 import {
   Shield, ShieldAlert, ShieldCheck,
@@ -19,6 +20,7 @@ function getStatusColor(status) {
 }
 
 export default function ThreatDetection() {
+  const { callService } = useAuthedApi();
   const [statusData, setStatusData] = useState(null);
   const [threatLogs, setThreatLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +30,8 @@ export default function ThreatDetection() {
     async function fetchData() {
       setLoading(true);
       const [status, logs] = await Promise.all([
-        getSystemSecurityStatus(),
-        getSecurityThreatLogs(),
+        callService(getSystemSecurityStatus),
+        callService(getSecurityThreatLogs, 20),
       ]);
       if (!cancelled) {
         setStatusData(status);
@@ -39,7 +41,7 @@ export default function ThreatDetection() {
     }
     fetchData();
     return () => { cancelled = true; };
-  }, []);
+  }, [callService]);
 
   if (loading) {
     return (

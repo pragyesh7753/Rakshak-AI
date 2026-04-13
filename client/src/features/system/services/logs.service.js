@@ -2,19 +2,13 @@
  * System logs service
  * Handles processing log queries.
  */
-import { createClient } from '@/lib/supabase/client';
-
-function isMockMode() {
-  const url = import.meta.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const key = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  return !(url.startsWith('http') && key.length > 20);
-}
+import { apiRequest } from '@/lib/api/client';
 
 const buildMockLogs = () => {
   const now = new Date();
   return [
     { id: '1',  job_type: 'reddit_scraper',        status: 'running',    message: '[LIVE] Scraping r/cybersecurity - Processing thread #1847 | Posts: 24/150 | Rate limit: 87% available',               created_at: new Date(now - 15000).toISOString() },
-    { id: '2',  job_type: 'ai_analysis',           status: 'processing', message: '[LIVE] Gemini AI analyzing post batch #42 | Threat detection: 3 potential matches | Confidence: 0.87',              created_at: new Date(now - 30000).toISOString() },
+    { id: '2',  job_type: 'ai_analysis',           status: 'processing', message: '[LIVE] Llama 4 Maverick (SambaNova) analyzing post batch #42 | Threat detection: 3 potential matches | Confidence: 0.87', created_at: new Date(now - 30000).toISOString() },
     { id: '3',  job_type: 'threat_scoring',        status: 'success',    message: '[COMPLETED] Threat score calculation finished | Processed: 12 threats | Avg severity: 7.2/10 | Duration: 1.2s',     created_at: new Date(now - 45000).toISOString() },
     { id: '4',  job_type: 'darkweb_monitor',       status: 'success',    message: '[COMPLETED] Tor network scan complete | Forums checked: 8 | New posts: 47 | Threats detected: 2',                   created_at: new Date(now - 2 * 60000).toISOString() },
     { id: '5',  job_type: 'credential_leak_scan',  status: 'success',    message: '[COMPLETED] Scanned 1,247 credentials across 15 breach databases | Compromised: 0 | Clean: 1,247',                  created_at: new Date(now - 3 * 60000).toISOString() },
@@ -40,21 +34,14 @@ const buildMockLogs = () => {
  * Fetch recent background-worker processing logs.
  * @param {number} limit
  */
-export async function getProcessingLogs(limit = 20) {
-  if (isMockMode()) return buildMockLogs().slice(0, limit);
-
+export async function getProcessingLogs(limit = 20, getToken) {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('processing_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    return data ?? [];
+    return await apiRequest('/system/logs', {
+      getToken,
+      query: { limit },
+    });
   } catch (error) {
     console.error('[logs.service] getProcessingLogs:', error);
-    return [];
+    return buildMockLogs().slice(0, limit);
   }
 }

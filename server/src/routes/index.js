@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireClerkAuth } from "../middleware/auth.js";
+import authRoutes from "./auth.routes.js";
 import alertsRoutes from "./alerts.routes.js";
 import domainsRoutes from "./domains.routes.js";
 import monitoringRoutes from "./monitoring.routes.js";
@@ -12,6 +13,8 @@ const router = Router();
 router.get("/health", (_req, res) => {
   res.json({ ok: true, service: "rakshak-backend" });
 });
+
+router.use(authRoutes);
 
 router.use(requireClerkAuth);
 router.use(threatsRoutes);

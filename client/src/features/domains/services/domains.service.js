@@ -2,13 +2,7 @@
  * Domains service
  * Handles similar-domain monitoring queries.
  */
-import { createClient } from '@/lib/supabase/client';
-
-function isMockMode() {
-  const url = import.meta.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const key = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  return !(url.startsWith('http') && key.length > 20);
-}
+import { apiRequest } from '@/lib/api/client';
 
 const MOCK_DOMAINS = [
   { id: 'd1', domain_name: 'cybertech-support.com',  similarity_score: 0.85, registration_date: '2024-01-15', status: 'active' },
@@ -42,28 +36,13 @@ const MOCK_ACTIVITIES = {
 
 /**
  * Fetch similar/lookalike domains registered near the organisation's domain.
- * @param {string | null} organizationId
  */
-export async function getSimilarDomains(organizationId = null) {
-  if (isMockMode()) return MOCK_DOMAINS;
-
+export async function getSimilarDomains(getToken) {
   try {
-    const supabase = createClient();
-    let query = supabase
-      .from('similar_domains')
-      .select('*')
-      .order('similarity_score', { ascending: false });
-
-    if (organizationId) {
-      query = query.eq('organization_id', organizationId);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data ?? [];
+    return await apiRequest('/domains/similar', { getToken });
   } catch (error) {
     console.error('[domains.service] getSimilarDomains:', error);
-    return [];
+    return MOCK_DOMAINS;
   }
 }
 
@@ -71,22 +50,12 @@ export async function getSimilarDomains(organizationId = null) {
  * Fetch activity log for a single similar domain.
  * @param {string} domainId
  */
-export async function getDomainActivities(domainId) {
-  if (isMockMode()) return MOCK_ACTIVITIES[domainId] ?? [];
-
+export async function getDomainActivities(domainId, getToken) {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('domain_activities')
-      .select('*')
-      .eq('domain_id', domainId)
-      .order('detected_at', { ascending: false });
-
-    if (error) throw error;
-    return data ?? [];
+    return await apiRequest(`/domains/${domainId}/activities`, { getToken });
   } catch (error) {
     console.error('[domains.service] getDomainActivities:', error);
-    return [];
+    return MOCK_ACTIVITIES[domainId] ?? [];
   }
 }
 
@@ -94,8 +63,14 @@ export async function getDomainActivities(domainId) {
  * Fetch recent activity across all similar domains (global activity feed).
  * @param {number} limit
  */
-export async function getGlobalDomainActivities(limit = 20) {
-  if (isMockMode()) {
+export async function getGlobalDomainActivities(limit = 20, getToken) {
+  try {
+    return await apiRequest('/domains/activities/global', {
+      getToken,
+      query: { limit },
+    });
+  } catch (error) {
+    console.error('[domains.service] getGlobalDomainActivities:', error);
     const all = [
       { id: 'a1', domain_name: 'cybertech-support.com', activity_type: 'DNS Update',       description: 'Updated MX records to point to suspiciously similar mail server.', severity: 'medium', is_suspicious: true,  detected_at: new Date(Date.now() - 3600000 * 2).toISOString() },
       { id: 'a3', domain_name: 'cybertech-login.net',   activity_type: 'Cloning Detected',  description: 'Webpage content matches 95% of official login page.',              severity: 'high',   is_suspicious: true,  detected_at: new Date(Date.now() - 3600000 * 5).toISOString() },
@@ -107,23 +82,5 @@ export async function getGlobalDomainActivities(limit = 20) {
       { id: 'a5', domain_name: 'cybertach.com',         activity_type: 'Domain Parked',     description: 'Standard parking page detected with advertising links.',           severity: 'low',    is_suspicious: false, detected_at: new Date(Date.now() - 3600000 * 120).toISOString() },
     ];
     return all.slice(0, limit);
-  }
-
-  try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('domain_activities')
-      .select('*, similar_domains(domain_name)')
-      .order('detected_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    return (data ?? []).map((item) => ({
-      ...item,
-      domain_name: item.similar_domains?.domain_name,
-    }));
-  } catch (error) {
-    console.error('[domains.service] getGlobalDomainActivities:', error);
-    return [];
   }
 }

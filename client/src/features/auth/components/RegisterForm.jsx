@@ -1,230 +1,254 @@
 "use client";
 
+import { useAuth, useClerk, useSignUp } from "@clerk/clerk-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/client";
-import { insertOrganization } from "@/features/auth/actions";
+import {
+  checkBackendHealth,
+  createTokenGetter,
+  verifyBackendSession,
+} from "@/features/auth/services/backend-auth.service";
 
 const RegisterForm = () => {
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { getToken } = useAuth();
+  const { signOut } = useClerk();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    org_name: "",
-    sector: "",
-    domain: "",
-    email: "",
-    password: "",
-  });
+
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!isLoaded) {
+      return;
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
     try {
-      const supabase = createClient();
-
-      // 1. Sign up the user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            org_name: formData.org_name,
-            sector: formData.sector,
-            domain: formData.domain,
-          },
-        },
-      });
-
-      if (authError) {
-        setError(authError.message);
-        setLoading(false);
+      const backendReady = await checkBackendHealth();
+      if (!backendReady) {
+        setError("Backend server is unavailable. Start backend and try again.");
         return;
       }
 
-      const userId = authData?.user?.id ?? authData?.session?.user?.id;
+      const result = await signUp.create({
+        emailAddress: email,
+        password,
+      });
 
-      if (!userId) {
-        // Email confirmation enabled — no userId yet; redirect to confirm flow
-        setLoading(false);
-        navigate("/login?registered=true&confirm=true", { replace: true });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        const getBackendToken = createTokenGetter(getToken);
+
+        try {
+          await verifyBackendSession(getBackendToken);
+        } catch {
+          await signOut();
+          setError("Backend session verification failed. Please try again after backend starts.");
+          return;
+        }
+
+        navigate("/onboarding", { replace: true });
         return;
       }
 
-      // 2. Insert organization record via Server Action (uses service role key — bypasses RLS)
-      const result = await insertOrganization({
-        id: userId,
-        org_name: formData.org_name,
-        sector: formData.sector,
-        domain: formData.domain,
-      });
-
-      if (result?.error) {
-        setError(result.error);
-        setLoading(false);
-        return;
-      }
-
-      navigate(authData.session ? "/dashboard" : "/login?registered=true", {
-        replace: true,
-      });
-    } catch (err) {
-      console.error("[RegisterForm] unexpected error:", err);
-      setError(err?.message ?? "Something went wrong. Please try again.");
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setPendingVerification(true);
+    } catch (authError) {
+      const message = authError?.errors?.[0]?.longMessage ?? authError?.message ?? "Failed to create account.";
+      setError(message);
+    } finally {
       setLoading(false);
     }
-  };
+  }
+
+  async function handleVerifyCode(event) {
+    event.preventDefault();
+    if (!isLoaded) {
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const backendReady = await checkBackendHealth();
+      if (!backendReady) {
+        setError("Backend server is unavailable. Start backend and try again.");
+        return;
+      }
+
+      const result = await signUp.attemptEmailAddressVerification({ code });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        const getBackendToken = createTokenGetter(getToken);
+
+        try {
+          await verifyBackendSession(getBackendToken);
+        } catch {
+          await signOut();
+          setError("Backend session verification failed. Please try again after backend starts.");
+          return;
+        }
+
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+
+      setError("Verification did not complete. Please check the code and try again.");
+    } catch (verifyError) {
+      const message = verifyError?.errors?.[0]?.longMessage ?? verifyError?.message ?? "Failed to verify code.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendCode() {
+    if (!isLoaded) {
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+    } catch (resendError) {
+      const message = resendError?.errors?.[0]?.longMessage ?? resendError?.message ?? "Failed to resend code.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
       <div className="py-6 max-w-xl px-4 sm:px-0 mx-auto w-full">
         <div className="mb-4">
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground hover:text-white dark:text-muted-foreground dark:hover:text-foreground transition">
-            ← Back to home
+            {'<- Back to home'}
           </Link>
         </div>
-        <Card className="max-w-xl px-8 py-3 sm:p-7 relative shadow-2xl">
-          <CardHeader className="text-center gap-1 p-0">
-            {/* Logo */}
-            <div className="flex justify-center">
-              <img src="/logo.png" alt="Rakshak AI" className="h-24 w-48 object-contain" />
-            </div>
 
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl font-semibold">
-                Protect Your Organization
-              </CardTitle>
-              <CardDescription className="text-sm">
-                Cyber Threat Early Warning System for Indian Organizations
-              </CardDescription>
-            </div>
-          </CardHeader>
+        <div className="bg-card border border-border shadow-2xl rounded-xl p-6 sm:p-8">
+          <h1 className="text-2xl font-semibold text-white">Create Account</h1>
+          <p className="mt-1 text-sm text-gray-400">Register using Clerk client SDK.</p>
 
-          <CardContent className="p-0 mt-5">
-            <form onSubmit={handleSubmit}>
-              <FieldGroup className="gap-4">
+          {!pendingVerification ? (
+            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label className="mb-1 block text-sm text-gray-300">Work Email</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="admin@organization.com"
+                  required
+                />
+              </div>
 
-                {/* Row 1: Org Name + Sector */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Field className="gap-1.5">
-                    <FieldLabel className="text-sm text-muted-foreground">Organization Name</FieldLabel>
-                    <Input
-                      type="text"
-                      name="org_name"
-                      value={formData.org_name}
-                      onChange={handleChange}
-                      placeholder="SATIM College"
-                      required
-                      className="dark:bg-background"
-                    />
-                  </Field>
-                  <Field className="gap-1.5">
-                    <FieldLabel className="text-sm text-muted-foreground">Sector</FieldLabel>
-                    <Input
-                      type="text"
-                      name="sector"
-                      value={formData.sector}
-                      onChange={handleChange}
-                      placeholder="Education / Fintech"
-                      required
-                      className="dark:bg-background"
-                    />
-                  </Field>
-                </div>
+              <div>
+                <label className="mb-1 block text-sm text-gray-300">Password</label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Minimum 8 characters"
+                  minLength={8}
+                  required
+                />
+              </div>
 
-                {/* Row 2: Domain + Email */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Field className="gap-1.5">
-                    <FieldLabel className="text-sm text-muted-foreground">Domain / Website</FieldLabel>
-                    <Input
-                      type="text"
-                      name="domain"
-                      value={formData.domain}
-                      onChange={handleChange}
-                      placeholder="satimcollege.edu.in"
-                      required
-                      className="dark:bg-background"
-                    />
-                  </Field>
-                  <Field className="gap-1.5">
-                    <FieldLabel className="text-sm text-muted-foreground">Work Email</FieldLabel>
-                    <Input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="admin@org.com"
-                      required
-                      className="dark:bg-background"
-                    />
-                  </Field>
-                </div>
+              <div>
+                <label className="mb-1 block text-sm text-gray-300">Confirm Password</label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Re-enter password"
+                  minLength={8}
+                  required
+                />
+              </div>
 
-                {/* Password */}
-                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm text-muted-foreground">Password</FieldLabel>
-                  <Input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Min 8 chars, upper + lower + number"
-                    required
-                    minLength={8}
-                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
-                    title="Password must be at least 8 characters long and include uppercase, lowercase, and a number."
-                    className="dark:bg-background"
-                  />
-                </Field>
+              {error && <p className="text-sm text-red-400">{error}</p>}
 
-                {/* Error */}
-                {error && (
-                  <p className="text-sm text-red-500 text-center">{error}</p>
-                )}
+              <Button type="submit" className="w-full" disabled={loading || !isLoaded}>
+                {loading ? "Creating account..." : "Create account"}
+              </Button>
 
-                {/* CTA */}
-                <Field className="gap-3">
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="rounded-lg w-full"
-                    disabled={loading}
-                  >
-                    {loading ? "Registering…" : "Start Monitoring Threats 🚀"}
-                  </Button>
-
-                  <FieldDescription className="text-center text-sm text-muted-foreground">
-                    Already protected?{" "}
-                    <Link to="/login" className="font-medium text-card-foreground">
-                      Sign in
-                    </Link>
-                  </FieldDescription>
-                </Field>
-              </FieldGroup>
+              <p className="text-center text-sm text-gray-400">
+                Already have an account?{' '}
+                <Link to="/login" className="text-cyan-400 hover:text-cyan-300">
+                  Sign in
+                </Link>
+              </p>
             </form>
-          </CardContent>
-        </Card>
+          ) : (
+            <form className="mt-6 space-y-4" onSubmit={handleVerifyCode}>
+              <p className="text-sm text-gray-400">
+                We sent a verification code to {email}. Enter it below to complete signup.
+              </p>
+
+              <div>
+                <label className="mb-1 block text-sm text-gray-300">Email verification code</label>
+                <Input
+                  type="text"
+                  value={code}
+                  onChange={(event) => setCode(event.target.value)}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  required
+                />
+              </div>
+
+              {error && <p className="text-sm text-red-400">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={loading || !isLoaded}>
+                {loading ? "Verifying code..." : "Verify and continue"}
+              </Button>
+
+              <div className="flex justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  className="text-cyan-400 hover:text-cyan-300"
+                  disabled={loading || !isLoaded}
+                >
+                  Resend code
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingVerification(false);
+                    setCode("");
+                    setError("");
+                  }}
+                  className="text-gray-400 hover:text-white"
+                  disabled={loading}
+                >
+                  Edit email
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </section>
   );

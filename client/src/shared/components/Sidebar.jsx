@@ -1,8 +1,8 @@
 'use client';
 
 import { LayoutDashboard, Bell, User, Activity, Globe, LogOut, X, ScrollText } from 'lucide-react';
+import { useClerk } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { createClient } from '@/lib/supabase/client';
 
 /**
  * Application sidebar — shared across all dashboard sections.
@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
  */
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, user }) {
   const navigate = useNavigate();
+  const { signOut } = useClerk();
 
   const menuItems = [
     { id: 'dashboard',  label: 'Dashboard',         icon: LayoutDashboard },
@@ -26,10 +27,11 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
   };
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await signOut({ redirectUrl: '/login' });
     navigate('/login', { replace: true });
   };
+
+  const userEmail = user?.email ?? user?.primaryEmailAddress?.emailAddress ?? '';
 
   return (
     <>
@@ -100,7 +102,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
           {user && (
             <div className="px-4 py-3 bg-gray-800/60 rounded-lg">
-              <p className="text-xs text-gray-400 truncate mb-2">{user.email}</p>
+              <p className="text-xs text-gray-400 truncate mb-2">{userEmail}</p>
               <button
                 type="button"
                 onClick={handleSignOut}

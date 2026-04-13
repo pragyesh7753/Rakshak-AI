@@ -16,7 +16,7 @@ export async function scrapeReddit() {
   await ThreatSource.findOneAndUpdate(
     { sourceId: "reddit" },
     { $set: { sourceId: "reddit", name: "Reddit Search", type: "forum", isActive: true } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   );
 
   await logProcessing("running", "[LIVE] Starting Reddit scraping cycle");
@@ -47,7 +47,7 @@ export async function scrapeReddit() {
               threatScore: 0,
             },
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: "after" }
         );
       }
 

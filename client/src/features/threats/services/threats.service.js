@@ -1,12 +1,11 @@
 /**
  * Threats service
- * Handles all threat-related Supabase queries.
- * Uses the SSR-aware browser client so RLS auth cookies are forwarded.
+ * Handles threat-related backend API queries.
  */
-import { createClient } from '@/lib/supabase/client';
+import { apiRequest } from '@/lib/api/client';
 
 // ---------------------------------------------------------------------------
-// Mock data (used when Supabase is not configured)
+// Mock data (used as a resilient fallback when API calls fail)
 // ---------------------------------------------------------------------------
 const MOCK_THREATS = [
   {
@@ -94,12 +93,6 @@ const MOCK_THREATS = [
   },
 ];
 
-function isMockMode() {
-  const url = import.meta.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const key = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  return !(url.startsWith('http') && key.length > 20);
-}
-
 // ---------------------------------------------------------------------------
 // Service functions
 // ---------------------------------------------------------------------------
@@ -107,32 +100,9 @@ function isMockMode() {
 /**
  * Fetch aggregate summary statistics for the dashboard header cards.
  */
-export async function getSummaryStats() {
-  if (isMockMode()) {
-    return { totalThreats: 42, highSeverity: 8, unreadAlerts: 5, activeSources: 3 };
-  }
-
+export async function getSummaryStats(getToken) {
   try {
-    const supabase = createClient();
-
-    const [
-      { count: totalThreats },
-      { count: highSeverity },
-      { count: unreadAlerts },
-      { count: activeSources },
-    ] = await Promise.all([
-      supabase.from('threats').select('id', { count: 'exact', head: true }),
-      supabase.from('threats').select('id', { count: 'exact', head: true }).gte('severity_score', 7),
-      supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('is_read', false),
-      supabase.from('threat_sources').select('id', { count: 'exact', head: true }),
-    ]);
-
-    return {
-      totalThreats: totalThreats ?? 0,
-      highSeverity: highSeverity ?? 0,
-      unreadAlerts: unreadAlerts ?? 0,
-      activeSources: activeSources ?? 0,
-    };
+    return await apiRequest('/threats/summary', { getToken });
   } catch (error) {
     console.error('[threats.service] getSummaryStats:', error);
     return { totalThreats: 0, highSeverity: 0, unreadAlerts: 0, activeSources: 0 };
@@ -144,39 +114,15 @@ export async function getSummaryStats() {
  * @param {number} limit
  * @param {number} offset
  */
-export async function getRecentThreats(limit = 10, offset = 0) {
-  if (isMockMode()) return MOCK_THREATS.slice(offset, offset + limit);
-
+export async function getRecentThreats(limit = 10, offset = 0, getToken) {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('threats')
-      .select(`
-        id,
-        threat_type,
-        sector,
-        severity_score,
-        credibility_score,
-        impact_level,
-        summary,
-        raw_post_id,
-        raw_posts (
-          id,
-          title,
-          content,
-          url,
-          author,
-          source_id
-        )
-      `)
-      .order('id', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw error;
-    return data ?? [];
+    return await apiRequest('/threats', {
+      getToken,
+      query: { limit, offset },
+    });
   } catch (error) {
     console.error('[threats.service] getRecentThreats:', error);
-    return [];
+    return MOCK_THREATS.slice(offset, offset + limit);
   }
 }
 
@@ -184,8 +130,11 @@ export async function getRecentThreats(limit = 10, offset = 0) {
  * Fetch full details of a single threat including source information.
  * @param {string} threatId
  */
-export async function getThreatDetails(threatId) {
-  if (isMockMode()) {
+export async function getThreatDetails(threatId, getToken) {
+  try {
+    return await apiRequest(`/threats/${threatId}`, { getToken });
+  } catch (error) {
+    console.error('[threats.service] getThreatDetails:', error);
     return {
       id: threatId,
       threat_type: 'Ransomware',
@@ -206,41 +155,5 @@ export async function getThreatDetails(threatId) {
         threat_sources: { id: '1', name: 'Reddit r/cybersecurity', type: 'forum' },
       },
     };
-  }
-
-  try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('threats')
-      .select(`
-        id,
-        threat_type,
-        sector,
-        severity_score,
-        credibility_score,
-        impact_level,
-        summary,
-        raw_posts (
-          id,
-          title,
-          content,
-          url,
-          author,
-          source_id,
-          threat_sources (
-            id,
-            name,
-            type
-          )
-        )
-      `)
-      .eq('id', threatId)
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('[threats.service] getThreatDetails:', error);
-    return null;
   }
 }

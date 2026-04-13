@@ -4,7 +4,7 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
-import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
+import { OnboardingPage } from '@/pages/OnboardingPage'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicOnlyRoute } from '@/routes/PublicOnlyRoute'
 
@@ -27,9 +27,17 @@ export default function App() {
 			<Route
 				path="/register"
 				element={
-					<PublicOnlyRoute>
+					<PublicOnlyRoute redirectTo="/onboarding">
 						<RegisterPage />
 					</PublicOnlyRoute>
+				}
+			/>
+			<Route
+				path="/onboarding"
+				element={
+					<ProtectedRoute>
+						<OnboardingPage />
+					</ProtectedRoute>
 				}
 			/>
 			<Route
@@ -40,7 +48,6 @@ export default function App() {
 					</ProtectedRoute>
 				}
 			/>
-			<Route path="/auth/callback" element={<AuthCallbackPage />} />
 			<Route path="*" element={<Navigate to="/" replace />} />
 		</Routes>
 	)

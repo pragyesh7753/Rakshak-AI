@@ -16,7 +16,7 @@ function fallbackLogs(limit = 20) {
       job_type: "ai_analysis",
       status: "processing",
       message:
-        "[LIVE] Gemini AI analyzing post batch #42 | Threat detection: 3 potential matches | Confidence: 0.87",
+        "[LIVE] Llama 4 Maverick (SambaNova) analyzing post batch #42 | Threat detection: 3 potential matches | Confidence: 0.87",
       created_at: new Date(now - 30000).toISOString(),
     },
     {

@@ -21,7 +21,7 @@ export async function upsertMyOrganization(req, res) {
           keywords: Array.isArray(keywords) ? keywords : [],
         },
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
     ).lean();
 
     res.json({ success: true, organization: mapOrganization(org) });

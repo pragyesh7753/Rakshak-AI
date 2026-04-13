@@ -2,13 +2,7 @@
  * Alerts service
  * Handles alert queries and mutations.
  */
-import { createClient } from '@/lib/supabase/client';
-
-function isMockMode() {
-  const url = import.meta.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const key = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  return !(url.startsWith('http') && key.length > 20);
-}
+import { apiRequest } from '@/lib/api/client';
 
 const mockAlerts = () => {
   const now = new Date();
@@ -23,38 +17,13 @@ const mockAlerts = () => {
 
 /**
  * Fetch alerts for the authenticated organisation, newest first.
- * @param {string | null} organizationId
  */
-export async function getAlerts(organizationId = null) {
-  if (isMockMode()) return mockAlerts();
-
+export async function getAlerts(getToken) {
   try {
-    const supabase = createClient();
-    let query = supabase
-      .from('alerts')
-      .select(`
-        id,
-        is_read,
-        created_at,
-        threats (
-          id,
-          threat_type,
-          sector,
-          severity_score
-        )
-      `)
-      .order('created_at', { ascending: false });
-
-    if (organizationId) {
-      query = query.eq('organization_id', organizationId);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data ?? [];
+    return await apiRequest('/alerts', { getToken });
   } catch (error) {
     console.error('[alerts.service] getAlerts:', error);
-    return [];
+    return mockAlerts();
   }
 }
 
@@ -63,20 +32,12 @@ export async function getAlerts(organizationId = null) {
  * @param {string} alertId
  * @returns {Promise<boolean>}
  */
-export async function markAlertAsRead(alertId) {
-  if (isMockMode()) {
-    console.log(`[mock] Alert ${alertId} marked as read`);
-    return true;
-  }
-
+export async function markAlertAsRead(alertId, getToken) {
   try {
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('alerts')
-      .update({ is_read: true })
-      .eq('id', alertId);
-
-    if (error) throw error;
+    await apiRequest(`/alerts/${alertId}/read`, {
+      method: 'PATCH',
+      getToken,
+    });
     return true;
   } catch (error) {
     console.error('[alerts.service] markAlertAsRead:', error);

@@ -1,39 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import { Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
+import { createTokenGetter, verifyBackendSession } from '@/features/auth/services/backend-auth.service'
 
 export function ProtectedRoute({ children }) {
-  const [loading, setLoading] = useState(true)
-  const [isAuthed, setIsAuthed] = useState(false)
+  const { isLoaded, isSignedIn, getToken } = useAuth()
+  const [backendVerified, setBackendVerified] = useState(false)
+  const [verifying, setVerifying] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    let active = true
+    async function verifyWithBackend() {
+      if (!isLoaded || !isSignedIn) {
+        setVerifying(false)
+        return
+      }
 
-    async function checkAuth() {
       try {
-        const supabase = createClient()
-        const { data } = await supabase.auth.getUser()
-        if (!active) return
-        setIsAuthed(Boolean(data?.user))
-      } catch {
-        if (!active) return
-        setIsAuthed(false)
+        const getBackendToken = createTokenGetter(getToken)
+        await verifyBackendSession(getBackendToken)
+        setBackendVerified(true)
+      } catch (err) {
+        console.error('Backend verification failed:', err)
+        setError(true)
       } finally {
-        if (active) {
-          setLoading(false)
-        }
+        setVerifying(false)
       }
     }
 
-    checkAuth()
+    verifyWithBackend()
+  }, [isLoaded, isSignedIn, getToken])
 
-    return () => {
-      active = false
-    }
-  }, [])
-
-  if (loading) {
+  if (!isLoaded || verifying) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-950">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
@@ -41,8 +40,27 @@ export function ProtectedRoute({ children }) {
     )
   }
 
-  if (!isAuthed) {
+  if (!isSignedIn) {
     return <Navigate to="/login" replace />
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-950">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Backend server is not running</p>
+          <p className="text-gray-400 text-sm">Please start the backend server to continue</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!backendVerified) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-950">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+      </div>
+    )
   }
 
   return children
