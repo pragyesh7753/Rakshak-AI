@@ -22,7 +22,7 @@ export async function getAlerts(req, res) {
       .sort({ createdAt: -1 })
       .populate({
         path: "threat",
-        select: "threatType sector severityScore",
+        select: "threatType sector severityScore priority",
         options: { lean: true },
       })
       .lean();

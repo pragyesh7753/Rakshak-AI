@@ -11,6 +11,11 @@ export function mapThreat(threatDoc) {
     severity_score: threatDoc.severityScore,
     credibility_score: threatDoc.credibilityScore,
     impact_level: threatDoc.impactLevel,
+    priority: threatDoc.priority ?? "medium",
+    indicators: threatDoc.indicators ?? [],
+    recommended_action: threatDoc.recommendedAction ?? "",
+    likely_timeframe: threatDoc.likelyTimeframe ?? "unknown",
+    ai_confidence: threatDoc.aiConfidence ?? 0.5,
     summary: threatDoc.summary,
     raw_posts: raw
       ? {
@@ -36,6 +41,10 @@ export function mapAlert(alertDoc) {
   return {
     id: String(alertDoc._id),
     is_read: alertDoc.isRead,
+    priority: alertDoc.priority ?? "medium",
+    route_channel: alertDoc.routeChannel ?? "dashboard-digest",
+    route_reason: alertDoc.routeReason ?? "",
+    routed_at: alertDoc.routedAt ?? alertDoc.createdAt,
     created_at: alertDoc.createdAt,
     threats: alertDoc.threat
       ? {
@@ -43,6 +52,7 @@ export function mapAlert(alertDoc) {
           threat_type: alertDoc.threat.threatType,
           sector: alertDoc.threat.sector,
           severity_score: alertDoc.threat.severityScore,
+          priority: alertDoc.threat.priority ?? "medium",
         }
       : null,
   };

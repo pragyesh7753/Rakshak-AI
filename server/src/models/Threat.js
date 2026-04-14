@@ -12,8 +12,21 @@ const threatSchema = new mongoose.Schema(
       enum: ["low", "medium", "high", "critical"],
       default: "medium",
     },
+    priority: {
+      type: String,
+      enum: ["medium", "high", "critical"],
+      default: "medium",
+      index: true,
+    },
     organizationsMentioned: { type: [String], default: [] },
+    indicators: { type: [String], default: [] },
     summary: { type: String, default: "" },
+    recommendedAction: { type: String, default: "" },
+    likelyTimeframe: {
+      type: String,
+      enum: ["immediate", "days", "weeks", "unknown"],
+      default: "unknown",
+    },
     aiConfidence: { type: Number, min: 0, max: 1, default: 0.5 },
   },
   { timestamps: true }
