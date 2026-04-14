@@ -165,6 +165,12 @@ async function logProcessing(status, message) {
 
 export async function analyzePosts() {
   const llamaEnabled = isSambaNovaConfigured();
+  const llamaAnalysisCapPerCycle = Math.max(
+    0,
+    Number(process.env.LLM_ANALYSIS_CAP_PER_CYCLE ?? 20)
+  );
+  let llamaCallsUsed = 0;
+  let deferredByLlamaCap = 0;
 
   await logProcessing("running", "[LIVE] Starting AI analysis pipeline");
 
@@ -211,6 +217,12 @@ export async function analyzePosts() {
       };
 
       if (llamaEnabled) {
+        if (llamaCallsUsed >= llamaAnalysisCapPerCycle) {
+          deferredByLlamaCap += 1;
+          continue;
+        }
+
+        llamaCallsUsed += 1;
         const prompt = `
 Analyze this forum post for cyber threat intelligence.
 
@@ -327,5 +339,15 @@ Rules:
     }
   }
 
-  await logProcessing("success", `[COMPLETED] AI analysis completed | processed: ${posts.length}`);
+  if (deferredByLlamaCap > 0) {
+    await logProcessing(
+      "success",
+      `[INFO] Deferred ${deferredByLlamaCap} high-risk posts due to LLM_ANALYSIS_CAP_PER_CYCLE=${llamaAnalysisCapPerCycle}`
+    );
+  }
+
+  await logProcessing(
+    "success",
+    `[COMPLETED] AI analysis completed | scanned: ${posts.length} | llama_calls: ${llamaCallsUsed} | deferred: ${deferredByLlamaCap}`
+  );
 }
