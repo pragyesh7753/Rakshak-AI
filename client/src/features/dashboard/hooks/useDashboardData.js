@@ -5,7 +5,11 @@ import { useUser } from '@clerk/clerk-react';
 import { getSummaryStats, getRecentThreats, getThreatDetails } from '@/features/threats/services/threats.service';
 import { getAlerts, markAlertAsRead } from '@/features/alerts/services/alerts.service';
 import { getOrganization } from '@/features/organization/services/organization.service';
-import { getProcessingLogs } from '@/features/system/services/logs.service';
+import {
+  getProcessingLogs,
+  getProcessingLogSummary,
+  startPipelineRun,
+} from '@/features/system/services/logs.service';
 import { useAuthedApi } from '@/hooks/use-authed-api';
 
 const THREATS_PER_PAGE = 10;
@@ -30,6 +34,9 @@ export function useDashboardData() {
   const [alerts, setAlerts] = useState([]);
   const [organization, setOrganization] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [logSummary, setLogSummary] = useState(null);
+  const [pipelineStarting, setPipelineStarting] = useState(false);
+  const [pipelineMessage, setPipelineMessage] = useState('');
 
   const [page, setPage] = useState(0);
   const hasMounted = useRef(false);
@@ -60,8 +67,25 @@ export function useDashboardData() {
 
   const fetchLogs = useCallback(async () => {
     const data = await callService(getProcessingLogs, 20);
-    setLogs(data);
+    setLogs(Array.isArray(data) ? data : []);
+    return data;
   }, [callService]);
+
+  const fetchLogSummary = useCallback(async () => {
+    const data = await callService(getProcessingLogSummary, 24);
+    setLogSummary(data);
+    return data;
+  }, [callService]);
+
+  const refreshSystemData = useCallback(async () => {
+    const results = await Promise.allSettled([fetchLogs(), fetchLogSummary()]);
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const source = index === 0 ? 'getProcessingLogs' : 'getProcessingLogSummary';
+        console.error(`[useDashboardData] ${source}:`, result.reason);
+      }
+    });
+  }, [fetchLogs, fetchLogSummary]);
 
   // ---------------------------------------------------------------------------
   // Aggregate fetcher (initial load + refresh)
@@ -88,14 +112,14 @@ export function useDashboardData() {
         fetchThreats(),
         fetchAlerts(),
         fetchOrganization(),
-        fetchLogs(),
+        refreshSystemData(),
       ]);
     } catch (error) {
       console.error('[useDashboardData] fetchAllData:', error);
     } finally {
       setLoading(false);
     }
-  }, [fetchStats, fetchThreats, fetchAlerts, fetchOrganization, fetchLogs]);
+  }, [fetchStats, fetchThreats, fetchAlerts, fetchOrganization, refreshSystemData]);
 
   // Initial load
   useEffect(() => {
@@ -115,6 +139,19 @@ export function useDashboardData() {
     fetchThreats();
   }, [fetchThreats]);
 
+  // Keep system logs and summary fresh even without full dashboard refresh.
+  useEffect(() => {
+    if (!isAuthLoaded || !isSignedIn) {
+      return undefined;
+    }
+
+    const intervalId = setInterval(() => {
+      refreshSystemData();
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [isAuthLoaded, isSignedIn, refreshSystemData]);
+
   // ---------------------------------------------------------------------------
   // Action handlers
   // ---------------------------------------------------------------------------
@@ -123,6 +160,26 @@ export function useDashboardData() {
     setRefreshing(true);
     await fetchAllData();
     setRefreshing(false);
+  };
+
+  const handleStartPipeline = async () => {
+    setPipelineStarting(true);
+    try {
+      const result = await callService(startPipelineRun);
+      setPipelineMessage(result?.message ?? 'Pipeline trigger sent');
+      await refreshSystemData();
+      return result;
+    } catch (error) {
+      const message = String(error?.message ?? 'Failed to start pipeline');
+      setPipelineMessage(message);
+      return { started: false, message };
+    } finally {
+      setPipelineStarting(false);
+    }
+  };
+
+  const handleSystemRefresh = async () => {
+    await refreshSystemData();
   };
 
   const handleThreatClick = async (threatId) => {
@@ -161,6 +218,9 @@ export function useDashboardData() {
     alerts,
     organization,
     logs,
+    logSummary,
+    pipelineStarting,
+    pipelineMessage,
     page,
     threatsPerPage: THREATS_PER_PAGE,
     // Actions
@@ -168,6 +228,8 @@ export function useDashboardData() {
     handleRefresh,
     handleThreatClick,
     handleAlertClick,
+    handleStartPipeline,
+    handleSystemRefresh,
     closeModal,
   };
 }

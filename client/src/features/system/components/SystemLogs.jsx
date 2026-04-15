@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle, XCircle, Clock, AlertCircle, Radio } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Radio, RefreshCw, Play } from 'lucide-react';
 import { formatRelativeTime, parseLogMessage } from '@/shared/utils/format';
 
 function getStatusIcon(status) {
@@ -35,23 +35,113 @@ function getStatusBadgeClasses(status) {
   }
 }
 
-export default function SystemLogs({ logs }) {
-  if (!logs || logs.length === 0) {
-    return (
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-12 text-center">
-        <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium text-gray-400 mb-2">No Logs Found</h3>
-        <p className="text-sm text-gray-500">No system logs available at the moment.</p>
-      </div>
-    );
-  }
+export default function SystemLogs({
+  logs,
+  summary,
+  onStartPipeline,
+  onRefresh,
+  pipelineStarting,
+  pipelineMessage,
+}) {
+  const entries = Array.isArray(logs) ? logs : [];
+  const totals = summary?.totals ?? {
+    total: entries.length,
+    success: 0,
+    failed: 0,
+    running: 0,
+  };
+
+  const topJobs = Array.isArray(summary?.by_job_type) ? summary.by_job_type.slice(0, 5) : [];
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg">
+    <div className="space-y-6">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 flex-wrap">
+              Pipeline Control and Aggregated Logs
+              <span className="text-xs px-2 py-1 bg-cyan-500/10 text-cyan-400 rounded-full border border-cyan-500/20">
+                Last {summary?.window_hours ?? 24}h
+              </span>
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+              Pipeline status: {summary?.pipeline_running ? 'Running' : 'Idle'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={onRefresh}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-gray-800 text-gray-200 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button
+              onClick={onStartPipeline}
+              disabled={pipelineStarting || summary?.pipeline_running}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-cyan-600 text-white border border-cyan-500 rounded-lg hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              {pipelineStarting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              {summary?.pipeline_running ? 'Pipeline Running' : 'Start Pipeline'}
+            </button>
+          </div>
+        </div>
+
+        {pipelineMessage && (
+          <div className="mt-4 text-sm text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2">
+            {pipelineMessage}
+          </div>
+        )}
+
+        <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-black/30 border border-gray-800 rounded-lg p-3">
+            <p className="text-xs text-gray-400">Total Logs</p>
+            <p className="text-xl font-semibold text-white mt-1">{totals.total}</p>
+          </div>
+          <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
+            <p className="text-xs text-green-300">Success</p>
+            <p className="text-xl font-semibold text-green-300 mt-1">{totals.success}</p>
+          </div>
+          <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
+            <p className="text-xs text-red-300">Failed</p>
+            <p className="text-xl font-semibold text-red-300 mt-1">{totals.failed}</p>
+          </div>
+          <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3">
+            <p className="text-xs text-yellow-300">Running</p>
+            <p className="text-xl font-semibold text-yellow-300 mt-1">{totals.running}</p>
+          </div>
+        </div>
+
+        {topJobs.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-gray-400 border-b border-gray-800">
+                  <th className="text-left py-2">Job Type</th>
+                  <th className="text-right py-2">Total</th>
+                  <th className="text-right py-2">Success</th>
+                  <th className="text-right py-2">Failed</th>
+                  <th className="text-right py-2">Running</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topJobs.map((row) => (
+                  <tr key={row.job_type} className="border-b border-gray-900 text-gray-300">
+                    <td className="py-2 font-mono">{row.job_type}</td>
+                    <td className="py-2 text-right">{row.total}</td>
+                    <td className="py-2 text-right text-green-300">{row.success}</td>
+                    <td className="py-2 text-right text-red-300">{row.failed}</td>
+                    <td className="py-2 text-right text-yellow-300">{row.running}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-gray-900 border border-gray-800 rounded-lg">
       <div className="p-4 sm:p-6 border-b border-gray-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -59,7 +149,7 @@ export default function SystemLogs({ logs }) {
               System Processing Logs
               <span className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded-full border border-green-500/20">Live</span>
             </h3>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">Real-time system activity • {logs.length} entries</p>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">Real-time system activity • {entries.length} entries</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -69,7 +159,19 @@ export default function SystemLogs({ logs }) {
       </div>
 
       <div className="divide-y divide-gray-800 max-h-150 overflow-y-auto bg-black/20">
-        {logs.map((log, index) => {
+        {entries.length === 0 && (
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-400 mb-2">No Logs Found</h3>
+            <p className="text-sm text-gray-500">No system logs available at the moment.</p>
+          </div>
+        )}
+
+        {entries.map((log, index) => {
           const { tag, tagColor, message } = parseLogMessage(log.message);
           const isLive = log.status?.toLowerCase() === 'running' || log.status?.toLowerCase() === 'processing';
 
@@ -116,9 +218,10 @@ export default function SystemLogs({ logs }) {
 
       <div className="p-3 sm:p-4 border-t border-gray-800 bg-black/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-500">
-          <span>Showing {logs.length} recent entries</span>
+          <span>Showing {entries.length} recent entries</span>
           <span className="font-mono">Updated {formatRelativeTime(new Date().toISOString())}</span>
         </div>
+      </div>
       </div>
     </div>
   );

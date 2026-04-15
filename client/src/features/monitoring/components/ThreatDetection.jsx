@@ -24,19 +24,32 @@ export default function ThreatDetection() {
   const [statusData, setStatusData] = useState(null);
   const [threatLogs, setThreatLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
       setLoading(true);
-      const [status, logs] = await Promise.all([
-        callService(getSystemSecurityStatus),
-        callService(getSecurityThreatLogs, 20),
-      ]);
-      if (!cancelled) {
-        setStatusData(status);
-        setThreatLogs(logs);
-        setLoading(false);
+      setError('');
+      try {
+        const [status, logs] = await Promise.all([
+          callService(getSystemSecurityStatus),
+          callService(getSecurityThreatLogs, 20),
+        ]);
+        if (!cancelled) {
+          setStatusData(status);
+          setThreatLogs(Array.isArray(logs) ? logs : []);
+        }
+      } catch (fetchError) {
+        if (!cancelled) {
+          setStatusData(null);
+          setThreatLogs([]);
+          setError(String(fetchError?.message ?? 'Unable to load monitoring data'));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
     fetchData();
@@ -54,7 +67,7 @@ export default function ThreatDetection() {
   if (!statusData) {
     return (
       <div className="flex items-center justify-center p-24 text-gray-500">
-        Unable to load security status.
+        {error || 'Unable to load security status.'}
       </div>
     );
   }
@@ -96,10 +109,10 @@ export default function ThreatDetection() {
             {/* Summary Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'Active Threats',  value: statusData.metrics.activeThreats,  icon: ShieldAlert, color: 'text-red-400'    },
-                { label: 'Blocked IPs',     value: statusData.metrics.blockedIPs,     icon: Lock,        color: 'text-blue-400'   },
-                { label: 'Failed Logins',   value: statusData.metrics.failedLogins,   icon: Users,       color: 'text-yellow-400' },
-                { label: 'API Anomalies',   value: statusData.metrics.apiAnomalies,   icon: Activity,    color: 'text-cyan-400'   },
+                { label: 'Active Threats',  value: statusData.metrics?.activeThreats ?? 0,  icon: ShieldAlert, color: 'text-red-400'    },
+                { label: 'Blocked IPs',     value: statusData.metrics?.blockedIPs ?? 0,     icon: Lock,        color: 'text-blue-400'   },
+                { label: 'Failed Logins',   value: statusData.metrics?.failedLogins ?? 0,   icon: Users,       color: 'text-yellow-400' },
+                { label: 'API Anomalies',   value: statusData.metrics?.apiAnomalies ?? 0,   icon: Activity,    color: 'text-cyan-400'   },
               ].map((metric) => {
                 const MetricIcon = metric.icon;
                 return (
@@ -123,7 +136,7 @@ export default function ThreatDetection() {
             Traffic Pattern (24h)
           </h3>
           <div className="flex-1 flex items-end gap-2 h-40">
-            {statusData.trafficTrend.map((t, i) => (
+            {(statusData.trafficTrend ?? []).map((t, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
                 <div
                   className="w-full bg-cyan-400/20 border-t-2 border-cyan-400 rounded-t-sm group-hover:bg-cyan-400/40 transition-all cursor-crosshair relative"
@@ -138,7 +151,7 @@ export default function ThreatDetection() {
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-6 leading-relaxed">
-            Detecting unusual spikes at 16:00. Correlating with brute force logs.
+            Trend reflects recorded security events from backend logs.
           </p>
         </div>
       </div>
@@ -173,6 +186,13 @@ export default function ThreatDetection() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
+                  {threatLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-500">
+                        No security events found.
+                      </td>
+                    </tr>
+                  )}
                   {threatLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-900/40 transition-colors group">
                       <td className="px-6 py-5">
@@ -229,7 +249,12 @@ export default function ThreatDetection() {
             Suspicious IPs
           </h3>
           <div className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-4">
-            {statusData.suspiciousIPs.map((ip, i) => (
+            {(statusData.suspiciousIPs ?? []).length === 0 && (
+              <div className="p-4 text-sm text-gray-500 border border-gray-800 rounded-2xl bg-gray-950/50">
+                No suspicious IP activity found.
+              </div>
+            )}
+            {(statusData.suspiciousIPs ?? []).map((ip, i) => (
               <div key={i} className="flex items-center justify-between p-4 bg-gray-950/50 border border-gray-800/80 rounded-2xl hover:border-gray-700 transition-all group">
                 <div className="flex items-center gap-4">
                   <div className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center group-hover:bg-red-500/10 transition-colors">

@@ -21,12 +21,17 @@ export function DashboardPage() {
     alerts,
     organization,
     logs,
+    logSummary,
+    pipelineStarting,
+    pipelineMessage,
     page,
     threatsPerPage,
     setPage,
     handleRefresh,
     handleThreatClick,
     handleAlertClick,
+    handleStartPipeline,
+    handleSystemRefresh,
     closeModal,
   } = useDashboardData()
 
@@ -66,11 +71,16 @@ export function DashboardPage() {
           alerts={alerts}
           organization={organization}
           logs={logs}
+          logSummary={logSummary}
+          pipelineStarting={pipelineStarting}
+          pipelineMessage={pipelineMessage}
           page={page}
           threatsPerPage={threatsPerPage}
           onThreatClick={handleThreatClick}
           onAlertClick={handleAlertClick}
           onPageChange={setPage}
+          onStartPipeline={handleStartPipeline}
+          onSystemRefresh={handleSystemRefresh}
         />
       </main>
 

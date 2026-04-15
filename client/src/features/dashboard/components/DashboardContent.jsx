@@ -19,11 +19,16 @@ export default function DashboardContent({
   alerts,
   organization,
   logs,
+  logSummary,
+  pipelineStarting,
+  pipelineMessage,
   page,
   threatsPerPage,
   onThreatClick,
   onAlertClick,
   onPageChange,
+  onStartPipeline,
+  onSystemRefresh,
 }) {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -84,7 +89,16 @@ export default function DashboardContent({
       {activeSection === 'domains' && <DomainMonitor />}
 
       {/* ── System ──────────────────────────────────────────────────────────── */}
-      {activeSection === 'system' && <SystemLogs logs={logs} />}
+      {activeSection === 'system' && (
+        <SystemLogs
+          logs={logs}
+          summary={logSummary}
+          onStartPipeline={onStartPipeline}
+          onRefresh={onSystemRefresh}
+          pipelineStarting={pipelineStarting}
+          pipelineMessage={pipelineMessage}
+        />
+      )}
     </div>
   );
 }

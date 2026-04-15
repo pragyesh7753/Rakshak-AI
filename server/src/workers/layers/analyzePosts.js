@@ -155,6 +155,32 @@ function extractJsonPayload(text) {
   return JSON.parse(cleanText.slice(firstBrace, lastBrace + 1));
 }
 
+function chunkArray(items, chunkSize) {
+  const size = Math.max(1, Number(chunkSize) || 1);
+  const chunks = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function buildDefaultAnalysis(post, assessment) {
+  return {
+    is_threat: true,
+    threat_type: "Potential cyber threat",
+    sector: "Technology",
+    severity_score: Math.min(10, Math.max(5, Math.round(assessment.score))),
+    credibility_score: 6,
+    impact_level: "high",
+    organizations_mentioned: [],
+    summary: post.content.slice(0, 300),
+    confidence_score: assessment.confidence,
+    indicators: [],
+    recommended_action: "Investigate and monitor for related indicators.",
+    likely_timeframe: "unknown",
+  };
+}
+
 async function logProcessing(status, message) {
   await ProcessingLog.create({
     jobType: "ai_analysis",
@@ -169,7 +195,9 @@ export async function analyzePosts() {
     0,
     Number(process.env.LLM_ANALYSIS_CAP_PER_CYCLE ?? 20)
   );
+  const llamaBatchSize = Math.max(1, Number(process.env.LLM_BATCH_SIZE ?? 5));
   let llamaCallsUsed = 0;
+  let llamaBatchesUsed = 0;
   let deferredByLlamaCap = 0;
 
   await logProcessing("running", "[LIVE] Starting AI analysis pipeline");
@@ -179,6 +207,86 @@ export async function analyzePosts() {
   if (posts.length === 0) {
     await logProcessing("success", "[COMPLETED] No new posts to analyze");
     return;
+  }
+
+  const queuedForThreatAnalysis = [];
+
+  async function persistAnalysisResult(entry, analysis, usedLlm) {
+    const { post, assessment } = entry;
+
+    if (!analysis.is_threat) {
+      post.processed = true;
+      await post.save();
+      return;
+    }
+
+    const impactLevel = normalizeImpactLevel(analysis.impact_level);
+    const severityScore = normalizeScore(analysis.severity_score, Math.round(assessment.score));
+    const credibilityScore = normalizeScore(analysis.credibility_score, 6);
+    const confidenceScore = normalizeConfidence(analysis.confidence_score, assessment.confidence);
+    const priority = derivePriority({
+      severity: severityScore,
+      credibility: credibilityScore,
+      impact: impactLevel,
+      threatScore: assessment.score,
+    });
+    const routing = deriveRouting(priority, confidenceScore);
+
+    const threat = await Threat.create({
+      rawPost: post._id,
+      threatType: analysis.threat_type || "Potential cyber threat",
+      sector: analysis.sector || "Technology",
+      severityScore,
+      credibilityScore,
+      impactLevel,
+      priority,
+      organizationsMentioned: Array.isArray(analysis.organizations_mentioned)
+        ? analysis.organizations_mentioned
+        : [],
+      summary: analysis.summary || post.content.slice(0, 300),
+      indicators: Array.isArray(analysis.indicators) ? analysis.indicators : [],
+      recommendedAction: String(analysis.recommended_action || "Investigate and monitor"),
+      likelyTimeframe: String(analysis.likely_timeframe || "unknown"),
+      aiConfidence: usedLlm
+        ? Math.min(1, Math.max(0, confidenceScore / 100))
+        : Math.min(0.85, Math.max(0.3, confidenceScore / 100)),
+    });
+
+    const targetResolution = await resolveTargetOrganizations({
+      analysisSector: analysis.sector,
+      organizationsMentioned: analysis.organizations_mentioned,
+      priority,
+    });
+
+    const organizations = targetResolution.organizations;
+    const finalRouteChannel = targetResolution.routeChannelOverride ?? routing.routeChannel;
+    const baseRouteReason = finalRouteChannel === routing.routeChannel
+      ? routing.routeReason
+      : `Fallback channel override to ${finalRouteChannel}`;
+    const finalRouteReason = targetResolution.fallbackReason
+      ? `${baseRouteReason} | ${targetResolution.fallbackReason}`
+      : baseRouteReason;
+
+    for (const org of organizations) {
+      await Alert.findOneAndUpdate(
+        { organization: org._id, threat: threat._id },
+        {
+          $setOnInsert: {
+            organization: org._id,
+            threat: threat._id,
+            isRead: false,
+            priority,
+            routeChannel: finalRouteChannel,
+            routeReason: finalRouteReason,
+            routedAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+    }
+
+    post.processed = true;
+    await post.save();
   }
 
   for (const post of posts) {
@@ -200,142 +308,110 @@ export async function analyzePosts() {
         await post.save();
         continue;
       }
+      queuedForThreatAnalysis.push({ post, assessment, candidate });
+    } catch (error) {
+      await logProcessing("failed", `[ERROR] Post processing failed ${post._id}: ${error.message}`);
+    }
+  }
 
-      let analysis = {
-        is_threat: true,
-        threat_type: "Potential cyber threat",
-        sector: "Technology",
-        severity_score: Math.min(10, Math.max(5, Math.round(assessment.score))),
-        credibility_score: 6,
-        impact_level: "high",
-        organizations_mentioned: [],
-        summary: post.content.slice(0, 300),
-        confidence_score: assessment.confidence,
-        indicators: [],
-        recommended_action: "Investigate and monitor for related indicators.",
-        likely_timeframe: "unknown",
-      };
+  if (!llamaEnabled) {
+    for (const entry of queuedForThreatAnalysis) {
+      try {
+        await persistAnalysisResult(entry, buildDefaultAnalysis(entry.post, entry.assessment), false);
+      } catch (error) {
+        await logProcessing(
+          "failed",
+          `[ERROR] Post processing failed ${entry.post._id}: ${error.message}`
+        );
+      }
+    }
+  } else {
+    const batches = chunkArray(queuedForThreatAnalysis, llamaBatchSize);
 
-      if (llamaEnabled) {
-        if (llamaCallsUsed >= llamaAnalysisCapPerCycle) {
-          deferredByLlamaCap += 1;
-          continue;
-        }
+    for (const batch of batches) {
+      if (llamaCallsUsed >= llamaAnalysisCapPerCycle) {
+        deferredByLlamaCap += batch.length;
+        continue;
+      }
 
-        llamaCallsUsed += 1;
+      llamaCallsUsed += 1;
+      llamaBatchesUsed += 1;
+
+      try {
+        const payload = batch.map((entry) => ({
+          post_id: String(entry.post._id),
+          title: String(entry.post.title || "").slice(0, 280),
+          content: String(entry.post.content || "").slice(0, 2200),
+          risk_score: entry.assessment.score,
+          confidence_score: entry.assessment.confidence,
+          malicious_signals: entry.candidate.maliciousSignals,
+          noise_signals: entry.candidate.noiseSignals,
+        }));
+
         const prompt = `
-Analyze this forum post for cyber threat intelligence.
+Analyze the following forum posts for cyber threat intelligence.
 
-POST TITLE:
-"${post.title || ""}"
+INPUT POSTS JSON:
+${JSON.stringify(payload, null, 2)}
 
-POST:
-"${post.content}"
-
-RISK SNAPSHOT:
-- Weighted risk score: ${assessment.score}/10
-- Confidence: ${assessment.confidence}/100
-- Malicious indicators matched: ${candidate.maliciousSignals}
-- Noise indicators matched: ${candidate.noiseSignals}
-
-Return STRICT JSON ONLY:
+Return STRICT JSON ONLY in this exact shape:
 {
-  "is_threat": true/false,
-  "threat_type": "",
-  "sector": "",
-  "severity_score": 1-10,
-  "credibility_score": 1-10,
-  "confidence_score": 0-100,
-  "impact_level": "low|medium|high|critical",
-  "organizations_mentioned": [],
-  "indicators": [],
-  "recommended_action": "",
-  "likely_timeframe": "immediate|days|weeks|unknown",
-  "summary": ""
+  "results": [
+    {
+      "post_id": "",
+      "is_threat": true/false,
+      "threat_type": "",
+      "sector": "",
+      "severity_score": 1-10,
+      "credibility_score": 1-10,
+      "confidence_score": 0-100,
+      "impact_level": "low|medium|high|critical",
+      "organizations_mentioned": [],
+      "indicators": [],
+      "recommended_action": "",
+      "likely_timeframe": "immediate|days|weeks|unknown",
+      "summary": ""
+    }
+  ]
 }
 
 Rules:
+- Include one result per input post_id.
 - If content is educational, hypothetical, or help-seeking, set is_threat=false.
 - Output valid JSON only. Do not include markdown or comments.
 `;
 
         const responseText = await generateLlamaResponse(prompt);
-        analysis = extractJsonPayload(responseText);
-      }
+        const parsed = extractJsonPayload(responseText);
+        const results = Array.isArray(parsed)
+          ? parsed
+          : Array.isArray(parsed?.results)
+            ? parsed.results
+            : [];
 
-      if (!analysis.is_threat) {
-        post.processed = true;
-        await post.save();
-        continue;
-      }
-
-      const impactLevel = normalizeImpactLevel(analysis.impact_level);
-      const severityScore = normalizeScore(analysis.severity_score, Math.round(assessment.score));
-      const credibilityScore = normalizeScore(analysis.credibility_score, 6);
-      const confidenceScore = normalizeConfidence(analysis.confidence_score, assessment.confidence);
-      const priority = derivePriority({
-        severity: severityScore,
-        credibility: credibilityScore,
-        impact: impactLevel,
-        threatScore: assessment.score,
-      });
-      const routing = deriveRouting(priority, confidenceScore);
-
-      const threat = await Threat.create({
-        rawPost: post._id,
-        threatType: analysis.threat_type || "Potential cyber threat",
-        sector: analysis.sector || "Technology",
-        severityScore,
-        credibilityScore,
-        impactLevel,
-        priority,
-        organizationsMentioned: Array.isArray(analysis.organizations_mentioned)
-          ? analysis.organizations_mentioned
-          : [],
-        summary: analysis.summary || post.content.slice(0, 300),
-        indicators: Array.isArray(analysis.indicators) ? analysis.indicators : [],
-        recommendedAction: String(analysis.recommended_action || "Investigate and monitor"),
-        likelyTimeframe: String(analysis.likely_timeframe || "unknown"),
-        aiConfidence: Math.min(1, Math.max(0, confidenceScore / 100)),
-      });
-
-      const targetResolution = await resolveTargetOrganizations({
-        analysisSector: analysis.sector,
-        organizationsMentioned: analysis.organizations_mentioned,
-        priority,
-      });
-
-      const organizations = targetResolution.organizations;
-      const finalRouteChannel = targetResolution.routeChannelOverride ?? routing.routeChannel;
-      const baseRouteReason = finalRouteChannel === routing.routeChannel
-        ? routing.routeReason
-        : `Fallback channel override to ${finalRouteChannel}`;
-      const finalRouteReason = targetResolution.fallbackReason
-        ? `${baseRouteReason} | ${targetResolution.fallbackReason}`
-        : baseRouteReason;
-
-      for (const org of organizations) {
-        await Alert.findOneAndUpdate(
-          { organization: org._id, threat: threat._id },
-          {
-            $setOnInsert: {
-              organization: org._id,
-              threat: threat._id,
-              isRead: false,
-              priority,
-              routeChannel: finalRouteChannel,
-              routeReason: finalRouteReason,
-              routedAt: new Date(),
-            },
-          },
-          { upsert: true }
+        const byPostId = new Map(
+          results
+            .filter((item) => item && item.post_id)
+            .map((item) => [String(item.post_id), item])
         );
-      }
 
-      post.processed = true;
-      await post.save();
-    } catch (error) {
-      await logProcessing("failed", `[ERROR] Post processing failed ${post._id}: ${error.message}`);
+        for (const entry of batch) {
+          const modelResult = byPostId.get(String(entry.post._id));
+          const fallbackAnalysis = buildDefaultAnalysis(entry.post, entry.assessment);
+          const mergedAnalysis = {
+            ...fallbackAnalysis,
+            ...(modelResult ?? {}),
+          };
+          await persistAnalysisResult(entry, mergedAnalysis, Boolean(modelResult));
+        }
+      } catch (error) {
+        for (const entry of batch) {
+          await logProcessing(
+            "failed",
+            `[ERROR] Post processing failed ${entry.post._id}: ${error.message}`
+          );
+        }
+      }
     }
   }
 
@@ -348,6 +424,6 @@ Rules:
 
   await logProcessing(
     "success",
-    `[COMPLETED] AI analysis completed | scanned: ${posts.length} | llama_calls: ${llamaCallsUsed} | deferred: ${deferredByLlamaCap}`
+    `[COMPLETED] AI analysis completed | scanned: ${posts.length} | queued: ${queuedForThreatAnalysis.length} | llama_calls: ${llamaCallsUsed} | llama_batches: ${llamaBatchesUsed} | deferred: ${deferredByLlamaCap}`
   );
 }

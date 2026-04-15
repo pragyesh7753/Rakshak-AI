@@ -15,6 +15,7 @@ export default function DomainMonitor() {
   const [loading, setLoading] = useState(true);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchDomains();
@@ -24,33 +25,66 @@ export default function DomainMonitor() {
 
   const fetchGlobalLogs = async () => {
     setLoadingLogs(true);
-    const data = await callService(getGlobalDomainActivities, 15);
-    setGlobalLogs(data);
-    setLoadingLogs(false);
+    try {
+      const data = await callService(getGlobalDomainActivities, 15);
+      setGlobalLogs(Array.isArray(data) ? data : []);
+    } catch (fetchError) {
+      setGlobalLogs([]);
+      setError(String(fetchError?.message ?? 'Failed to load global domain logs'));
+    } finally {
+      setLoadingLogs(false);
+    }
   };
 
   const handleDomainClick = async (domain) => {
     setSelectedDomain(domain);
     setLoadingActivities(true);
-    const data = await callService(getDomainActivities, domain.id);
-    setActivities(data);
-    setLoadingActivities(false);
+    try {
+      const data = await callService(getDomainActivities, domain.id);
+      setActivities(Array.isArray(data) ? data : []);
+    } catch (fetchError) {
+      setActivities([]);
+      setError(String(fetchError?.message ?? 'Failed to load domain activities'));
+    } finally {
+      setLoadingActivities(false);
+    }
   };
 
   const fetchDomains = async () => {
     setLoading(true);
-    const data = await callService(getSimilarDomains);
-    setDomains(data);
-    if (data.length > 0) {
-      handleDomainClick(data[0]);
+    setError('');
+    try {
+      const data = await callService(getSimilarDomains);
+      const normalized = Array.isArray(data) ? data : [];
+      setDomains(normalized);
+      if (normalized.length > 0) {
+        handleDomainClick(normalized[0]);
+      } else {
+        setSelectedDomain(null);
+        setActivities([]);
+      }
+    } catch (fetchError) {
+      setDomains([]);
+      setSelectedDomain(null);
+      setActivities([]);
+      setError(String(fetchError?.message ?? 'Failed to load similar domains'));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400" />
+      </div>
+    );
+  }
+
+  if (error && domains.length === 0 && globalLogs.length === 0) {
+    return (
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-400">
+        {error}
       </div>
     );
   }

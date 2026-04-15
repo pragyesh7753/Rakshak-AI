@@ -1,75 +1,113 @@
 import { SecurityThreatLog } from "../models/SecurityThreatLog.js";
 
-const fallbackStatus = {
-  status: "Warning",
-  score: 84,
-  metrics: {
-    activeThreats: 12,
-    blockedIPs: 154,
-    failedLogins: 423,
-    apiAnomalies: 5,
-  },
-  trafficTrend: [
-    { time: "00:00", value: 45 },
-    { time: "04:00", value: 30 },
-    { time: "08:00", value: 85 },
-    { time: "12:00", value: 120 },
-    { time: "16:00", value: 160 },
-    { time: "20:00", value: 95 },
-    { time: "23:59", value: 70 },
-  ],
-  suspiciousIPs: [
-    { ip: "192.168.1.105", attempts: 45, location: "Russia", risk: "High" },
-    { ip: "45.12.33.10", attempts: 23, location: "China", risk: "Medium" },
-    { ip: "103.25.11.2", attempts: 120, location: "India", risk: "Critical" },
-    { ip: "88.16.0.4", attempts: 12, location: "Germany", risk: "Low" },
-  ],
-};
+const TRAFFIC_MARKERS = [0, 4, 8, 12, 16, 20, 24];
+const TRAFFIC_LABELS = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "23:59"];
 
-const fallbackLogs = [
-  {
-    id: "sl1",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    ip: "103.25.11.2",
-    type: "SQL Injection",
-    resource: "/api/v1/users",
-    risk: "Critical",
-    status: "Active",
-  },
-  {
-    id: "sl2",
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    ip: "192.168.1.105",
-    type: "Brute Force",
-    resource: "/login",
-    risk: "High",
-    status: "Blocked",
-  },
-];
+function normalize(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function riskWeight(risk) {
+  const level = normalize(risk);
+  if (level === "critical") return 4;
+  if (level === "high") return 3;
+  if (level === "medium") return 2;
+  return 1;
+}
+
+function riskLabel(weight) {
+  if (weight >= 4) return "Critical";
+  if (weight >= 3) return "High";
+  if (weight >= 2) return "Medium";
+  return "Low";
+}
+
+function buildTrafficTrend(logs) {
+  const buckets = Array.from({ length: 7 }, () => 0);
+
+  for (const item of logs) {
+    const timestamp = new Date(item.timestamp);
+    const hour = Number.isFinite(timestamp.getHours()) ? timestamp.getHours() : 0;
+
+    for (let i = 0; i < TRAFFIC_MARKERS.length - 1; i += 1) {
+      const start = TRAFFIC_MARKERS[i];
+      const end = TRAFFIC_MARKERS[i + 1];
+      if (hour >= start && hour < end) {
+        buckets[i] += 1;
+        break;
+      }
+    }
+  }
+
+  return TRAFFIC_LABELS.map((label, index) => ({ time: label, value: buckets[index] }));
+}
+
+function buildSuspiciousIps(logs) {
+  const grouped = new Map();
+
+  for (const item of logs) {
+    const ip = String(item.ip ?? "").trim();
+    if (!ip) continue;
+
+    const existing = grouped.get(ip) ?? { attempts: 0, maxRiskWeight: 1 };
+    existing.attempts += 1;
+    existing.maxRiskWeight = Math.max(existing.maxRiskWeight, riskWeight(item.risk));
+    grouped.set(ip, existing);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([ip, data]) => ({
+      ip,
+      attempts: data.attempts,
+      location: "Unknown",
+      risk: riskLabel(data.maxRiskWeight),
+    }))
+    .sort((a, b) => b.attempts - a.attempts)
+    .slice(0, 6);
+}
 
 export async function getSystemSecurityStatus(_req, res) {
   try {
-    const [critical, high, total] = await Promise.all([
-      SecurityThreatLog.countDocuments({ risk: "Critical" }),
-      SecurityThreatLog.countDocuments({ risk: "High" }),
-      SecurityThreatLog.countDocuments({ status: "Active" }),
-    ]);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const logs = await SecurityThreatLog.find({ timestamp: { $gte: since } })
+      .select("timestamp ip type resource risk status")
+      .lean();
 
-    if (critical === 0 && high === 0 && total === 0) {
-      return res.json(fallbackStatus);
-    }
+    const activeThreats = logs.filter((item) => normalize(item.status) === "active").length;
+    const critical = logs.filter((item) => normalize(item.risk) === "critical").length;
+    const high = logs.filter((item) => normalize(item.risk) === "high").length;
+    const blockedIPs = new Set(
+      logs
+        .filter((item) => normalize(item.status) === "blocked")
+        .map((item) => String(item.ip ?? "").trim())
+        .filter(Boolean)
+    ).size;
+
+    const failedLogins = logs.filter((item) => {
+      const type = normalize(item.type);
+      return type.includes("failed login") || type.includes("brute force");
+    }).length;
+
+    const apiAnomalies = logs.filter((item) => {
+      const type = normalize(item.type);
+      const resource = normalize(item.resource);
+      return type.includes("api") || resource.includes("/api");
+    }).length;
 
     const score = Math.max(10, 100 - critical * 6 - high * 3);
     const status = critical > 5 ? "Critical" : high > 3 ? "Warning" : "Safe";
 
     res.json({
-      ...fallbackStatus,
       status,
       score,
       metrics: {
-        ...fallbackStatus.metrics,
-        activeThreats: total,
+        activeThreats,
+        blockedIPs,
+        failedLogins,
+        apiAnomalies,
       },
+      trafficTrend: buildTrafficTrend(logs),
+      suspiciousIPs: buildSuspiciousIps(logs),
     });
   } catch (error) {
     console.error("[monitoring.controller] getSystemSecurityStatus:", error);
@@ -85,10 +123,6 @@ export async function getSecurityThreatLogs(req, res) {
       .sort({ timestamp: -1 })
       .limit(limit)
       .lean();
-
-    if (logs.length === 0) {
-      return res.json(fallbackLogs);
-    }
 
     res.json(
       logs.map((item) => ({

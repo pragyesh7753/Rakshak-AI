@@ -6,7 +6,7 @@ import cron from "node-cron";
 import express from "express";
 import { connectMongo } from "./config/mongodb.js";
 import apiRouter from "./routes/index.js";
-import { runPipeline } from "./workers/jobs/runPipeline.js";
+import { triggerPipelineRun } from "./workers/jobs/runPipeline.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
@@ -28,35 +28,16 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-let pipelineRunning = false;
-
-async function runPipelineSafely(trigger) {
-  if (pipelineRunning) {
-    return;
-  }
-
-  pipelineRunning = true;
-  try {
-    console.log(`[pipeline] started (${trigger})`);
-    await runPipeline();
-    console.log("[pipeline] finished");
-  } catch (error) {
-    console.error("[pipeline] failed", error);
-  } finally {
-    pipelineRunning = false;
-  }
-}
-
 async function bootstrap() {
   await connectMongo();
 
   if (process.env.RUN_PIPELINE_ON_START === "true") {
-    runPipelineSafely("startup");
+    triggerPipelineRun("startup");
   }
 
   if (process.env.PIPELINE_CRON) {
     cron.schedule(process.env.PIPELINE_CRON, () => {
-      runPipelineSafely("schedule");
+      triggerPipelineRun("schedule");
     });
   }
 
