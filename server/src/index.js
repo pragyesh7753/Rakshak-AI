@@ -10,6 +10,60 @@ import { triggerPipelineRun } from "./workers/jobs/runPipeline.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
+const startedAt = new Date().toISOString();
+
+let mongoConnected = false;
+let mongoConnectError = null;
+let backgroundJobsStarted = false;
+
+const parsedMongoRetryMs = Number(process.env.MONGO_CONNECT_RETRY_MS ?? 10000);
+const mongoRetryMs = Number.isFinite(parsedMongoRetryMs) && parsedMongoRetryMs > 0
+  ? parsedMongoRetryMs
+  : 10000;
+
+function healthPayload() {
+  return {
+    ok: true,
+    service: "rakshakai-backend",
+    startedAt,
+    uptimeSeconds: Math.floor(process.uptime()),
+    dependencies: {
+      mongo: mongoConnected ? "up" : "down",
+    },
+  };
+}
+
+function readinessPayload() {
+  return {
+    ok: mongoConnected,
+    service: "rakshakai-backend",
+    status: mongoConnected ? "ready" : "not-ready",
+    startedAt,
+    uptimeSeconds: Math.floor(process.uptime()),
+    dependencies: {
+      mongo: mongoConnected ? "up" : "down",
+    },
+    error: mongoConnected ? null : mongoConnectError,
+  };
+}
+
+app.get("/health", (_req, res) => {
+  res.json(healthPayload());
+});
+
+app.get("/api/health", (_req, res) => {
+  res.json(healthPayload());
+});
+
+app.get("/ready", (_req, res) => {
+  const payload = readinessPayload();
+  res.status(payload.ok ? 200 : 503).json(payload);
+});
+
+app.get("/api/ready", (_req, res) => {
+  const payload = readinessPayload();
+  res.status(payload.ok ? 200 : 503).json(payload);
+});
 
 app.use(
   cors({
@@ -28,8 +82,12 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-async function bootstrap() {
-  await connectMongo();
+function startBackgroundJobs() {
+  if (backgroundJobsStarted) {
+    return;
+  }
+
+  backgroundJobsStarted = true;
 
   if (process.env.RUN_PIPELINE_ON_START === "true") {
     triggerPipelineRun("startup");
@@ -40,10 +98,32 @@ async function bootstrap() {
       triggerPipelineRun("schedule");
     });
   }
+}
 
+async function connectMongoWithRetry() {
+  try {
+    await connectMongo();
+    mongoConnected = true;
+    mongoConnectError = null;
+    console.log("[backend] MongoDB connected");
+    startBackgroundJobs();
+  } catch (error) {
+    mongoConnected = false;
+    mongoConnectError = error instanceof Error ? error.message : String(error);
+    console.error(
+      `[backend] MongoDB connection failed; retrying in ${mongoRetryMs}ms`,
+      error
+    );
+    setTimeout(connectMongoWithRetry, mongoRetryMs);
+  }
+}
+
+async function bootstrap() {
   app.listen(port, () => {
     console.log(`Rakshak backend listening on port ${port}`);
   });
+
+  void connectMongoWithRetry();
 }
 
 bootstrap().catch((error) => {

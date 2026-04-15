@@ -10,10 +10,6 @@ import threatsRoutes from "./threats.routes.js";
 
 const router = Router();
 
-router.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "rakshak-backend" });
-});
-
 router.use(authRoutes);
 
 router.use(requireClerkAuth);
