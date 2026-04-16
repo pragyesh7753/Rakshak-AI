@@ -10,6 +10,7 @@
     "pipeline": "node src/workers/jobs/runPipeline.js"
   },
   "dependencies": {
+    "@google/genai": "^1.24.0",
     "@clerk/express": "^2.1.0",
     "axios": "^1.15.0",
     "cors": "^2.8.6",

@@ -24,11 +24,18 @@ export function OnboardingPage() {
     org_name: '',
     sector: '',
     domain: '',
+    description: '',
     keywords: '',
   });
 
   const submitDisabled = useMemo(() => {
-    return saving || !form.org_name.trim() || !form.sector.trim() || !form.domain.trim();
+    return (
+      saving ||
+      !form.org_name.trim() ||
+      !form.sector.trim() ||
+      !form.domain.trim() ||
+      !form.description.trim()
+    );
   }, [form, saving]);
 
   useEffect(() => {
@@ -79,6 +86,7 @@ export function OnboardingPage() {
         org_name: form.org_name.trim(),
         sector: form.sector.trim(),
         domain: form.domain.trim(),
+        description: form.description.trim(),
         keywords: normalizeKeywords(form.keywords),
       });
       navigate('/dashboard', { replace: true });
@@ -149,6 +157,20 @@ export function OnboardingPage() {
                 placeholder="acme-security.com"
                 required
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm text-gray-300">Organization Description</label>
+              <textarea
+                value={form.description}
+                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+                placeholder="Describe your services, tech stack, customer base, and what kind of cyber risks you care about."
+                className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                required
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This helps generate sector-specific multilingual threat keywords.
+              </p>
             </div>
 
             <div>

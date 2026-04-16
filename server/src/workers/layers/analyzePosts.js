@@ -1,5 +1,4 @@
 import { Alert } from "../../models/Alert.js";
-import { Organization } from "../../models/Organization.js";
 import { ProcessingLog } from "../../models/ProcessingLog.js";
 import { RawPost } from "../../models/RawPost.js";
 import { Threat } from "../../models/Threat.js";
@@ -15,6 +14,10 @@ import {
   isGroqConfigured,
 } from "../clients/groqClient.js";
 import { evaluateThreatCandidate } from "./filterThread.js";
+import {
+  loadOrganizationRelevanceProfiles,
+  rankOrganizationsByEmbedding,
+} from "./keywordBank.js";
 import { calculateThreatAssessment, isHighRisk } from "./scoring.js";
 
 const CONTEXT_PROFILES = [
@@ -119,10 +122,6 @@ function normalizeTimeframe(value) {
   return "unknown";
 }
 
-function escapeRegex(text) {
-  return String(text ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function uniqueMentionTokens(values) {
   return [
     ...new Set(
@@ -196,12 +195,29 @@ function deriveRouting(priority, confidence) {
   };
 }
 
-async function resolveTargetOrganizations({ analysisSector, organizationsMentioned, priority }) {
-  const normalizedSector = String(analysisSector ?? "").trim();
+async function resolveTargetOrganizations({
+  analysisSector,
+  organizationsMentioned,
+  priority,
+  postBody,
+  organizationProfiles,
+  useEmbeddingRouting,
+}) {
+  const profiles = Array.isArray(organizationProfiles) ? organizationProfiles : [];
+  if (profiles.length === 0) {
+    return {
+      organizations: [],
+      fallbackReason: "No organizations configured for alert routing",
+      routeChannelOverride: null,
+    };
+  }
 
+  const normalizedSector = String(analysisSector ?? "").trim().toLowerCase();
   if (normalizedSector) {
-    const sectorRegex = new RegExp(`^${escapeRegex(normalizedSector)}$`, "i");
-    const bySector = await Organization.find({ sector: sectorRegex }).select("_id").lean();
+    const bySector = profiles
+      .filter((profile) => profile.sectorLower === normalizedSector)
+      .map((profile) => ({ _id: profile.organizationId }));
+
     if (bySector.length > 0) {
       return {
         organizations: bySector,
@@ -211,14 +227,14 @@ async function resolveTargetOrganizations({ analysisSector, organizationsMention
     }
   }
 
-  const mentionTokens = uniqueMentionTokens(organizationsMentioned);
+  const mentionTokens = uniqueMentionTokens(organizationsMentioned)
+    .map((token) => token.toLowerCase())
+    .filter(Boolean);
+
   if (mentionTokens.length > 0) {
-    const mentionRegex = mentionTokens.map((token) => new RegExp(escapeRegex(token), "i"));
-    const byMention = await Organization.find({
-      $or: [{ orgName: { $in: mentionRegex } }, { domain: { $in: mentionRegex } }, { keywords: { $in: mentionRegex } }],
-    })
-      .select("_id")
-      .lean();
+    const byMention = profiles
+      .filter((profile) => mentionTokens.some((token) => profile.mentionText.includes(token)))
+      .map((profile) => ({ _id: profile.organizationId }));
 
     if (byMention.length > 0) {
       return {
@@ -229,19 +245,39 @@ async function resolveTargetOrganizations({ analysisSector, organizationsMention
     }
   }
 
-  const allOrganizations = await Organization.find({}).select("_id").lean();
-  if (allOrganizations.length === 0) {
-    return {
-      organizations: [],
-      fallbackReason: "No organizations configured for alert routing",
-      routeChannelOverride: null,
-    };
+  if (useEmbeddingRouting) {
+    try {
+      const ranked = await rankOrganizationsByEmbedding(postBody, profiles, {
+        minSimilarity: Number(process.env.ORG_EMBEDDING_MIN_SIMILARITY ?? 0.21),
+        maxMatches: Math.max(1, Number(process.env.ORG_EMBEDDING_MAX_MATCHES ?? 8)),
+      });
+
+      if (ranked.length > 0) {
+        return {
+          organizations: ranked.map((entry) => ({ _id: entry.organizationId })),
+          fallbackReason: `Embedding relevance routing matched ${ranked.length} organizations`,
+          routeChannelOverride: null,
+        };
+      }
+
+      return {
+        organizations: [],
+        fallbackReason: `No sector/mention match and embedding relevance below threshold for '${normalizedSector || "unknown"}'`,
+        routeChannelOverride: null,
+      };
+    } catch (error) {
+      return {
+        organizations: [],
+        fallbackReason: `Embedding relevance routing failed: ${String(error?.message ?? error)}`,
+        routeChannelOverride: null,
+      };
+    }
   }
 
   const fallbackChannel = priority === "critical" ? "analyst-review" : "dashboard-digest";
   return {
-    organizations: allOrganizations,
-    fallbackReason: `No sector or mention match for '${normalizedSector || "unknown"}', broadcast fallback routing applied`,
+    organizations: profiles.map((profile) => ({ _id: profile.organizationId })),
+    fallbackReason: `No sector or mention match for '${normalizedSector || "unknown"}', broadcast fallback routing applied (embedding unavailable)`,
     routeChannelOverride: fallbackChannel,
   };
 }
@@ -590,6 +626,14 @@ export async function analyzePosts() {
     return;
   }
 
+  const organizationProfiles = await loadOrganizationRelevanceProfiles();
+  const embeddingRoutingEnabled = huggingFaceEnabled && organizationProfiles.length > 0;
+  let relevanceFilteredOut = 0;
+
+  if (organizationProfiles.length === 0) {
+    await logProcessing("running", "[INFO] No organization profiles available for routing");
+  }
+
   const queuedForThreatAnalysis = [];
 
   async function persistAnalysisResult(entry, analysis, usedSignals) {
@@ -613,6 +657,23 @@ export async function analyzePosts() {
       threatScore: assessment.score,
     });
     const routing = deriveRouting(priority, confidenceScore);
+
+    const targetResolution = await resolveTargetOrganizations({
+      analysisSector: analysis.sector,
+      organizationsMentioned: analysis.organizations_mentioned,
+      priority,
+      postBody: buildPostBody(post),
+      organizationProfiles,
+      useEmbeddingRouting: embeddingRoutingEnabled,
+    });
+
+    const organizations = targetResolution.organizations;
+    if (organizations.length === 0) {
+      relevanceFilteredOut += 1;
+      post.processed = true;
+      await post.save();
+      return;
+    }
 
     const usedAnyModel =
       Boolean(usedSignals?.context) || Boolean(usedSignals?.sentiment) || Boolean(usedSignals?.reasoning);
@@ -640,13 +701,6 @@ export async function analyzePosts() {
       aiConfidence,
     });
 
-    const targetResolution = await resolveTargetOrganizations({
-      analysisSector: analysis.sector,
-      organizationsMentioned: analysis.organizations_mentioned,
-      priority,
-    });
-
-    const organizations = targetResolution.organizations;
     const finalRouteChannel = targetResolution.routeChannelOverride ?? routing.routeChannel;
     const baseRouteReason =
       finalRouteChannel === routing.routeChannel
@@ -843,6 +897,6 @@ export async function analyzePosts() {
 
   await logProcessing(
     "success",
-    `[COMPLETED] AI analysis completed | scanned: ${posts.length} | queued: ${queuedForThreatAnalysis.length} | minilm_calls: ${minilmCallsUsed} | xlmr_calls: ${xlmrCallsUsed} | groq_calls: ${groqCallsUsed} | ambiguous: ${ambiguousCases} | borderline: ${borderlineCases} | reasoning_skipped: ${groqSkippedByCap}`
+    `[COMPLETED] AI analysis completed | scanned: ${posts.length} | queued: ${queuedForThreatAnalysis.length} | minilm_calls: ${minilmCallsUsed} | xlmr_calls: ${xlmrCallsUsed} | groq_calls: ${groqCallsUsed} | ambiguous: ${ambiguousCases} | borderline: ${borderlineCases} | reasoning_skipped: ${groqSkippedByCap} | relevance_filtered: ${relevanceFilteredOut}`
   );
 }

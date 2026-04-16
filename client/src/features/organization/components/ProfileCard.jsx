@@ -15,6 +15,13 @@ export default function ProfileCard({ organization }) {
     );
   }
 
+  const monitoredKeywords =
+    organization?.keyword_bank?.final_keywords?.length > 0
+      ? organization.keyword_bank.final_keywords
+      : Array.isArray(organization.keywords)
+        ? organization.keywords
+        : [];
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
       {/* Header banner */}
@@ -32,6 +39,9 @@ export default function ProfileCard({ organization }) {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{organization.org_name}</h2>
           <p className="text-cyan-400 font-medium text-sm sm:text-base">{organization.sector}</p>
+          {organization.description && (
+            <p className="text-sm text-gray-400 mt-2 leading-relaxed">{organization.description}</p>
+          )}
         </div>
 
         {/* Details */}
@@ -46,15 +56,15 @@ export default function ProfileCard({ organization }) {
             </div>
           </div>
 
-          {organization.keywords && organization.keywords.length > 0 && (
+          {monitoredKeywords.length > 0 && (
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center shrink-0">
                 <Hash className="w-5 h-5 text-cyan-400" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-400 mb-2">Monitored Keywords</p>
+                <p className="text-xs text-gray-400 mb-2">Monitored Keywords (Dynamic Bank)</p>
                 <div className="flex flex-wrap gap-2">
-                  {organization.keywords.map((keyword, index) => (
+                  {monitoredKeywords.slice(0, 24).map((keyword, index) => (
                     <span key={index} className="px-3 py-1 bg-gray-800 text-cyan-400 text-xs font-medium rounded-full">
                       {keyword}
                     </span>

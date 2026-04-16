@@ -2,7 +2,7 @@ import axios from "axios";
 import { ProcessingLog } from "../../models/ProcessingLog.js";
 import { RawPost } from "../../models/RawPost.js";
 import { ThreatSource } from "../../models/ThreatSource.js";
-import { redditQueries } from "./redditThreadQueries.js";
+import { getDynamicRedditQueries } from "../layers/keywordBank.js";
 
 async function logProcessing(status, message) {
   await ProcessingLog.create({
@@ -21,7 +21,13 @@ export async function scrapeReddit() {
 
   await logProcessing("running", "[LIVE] Starting Reddit scraping cycle");
 
-  for (const query of redditQueries) {
+  const { queries, metadata } = await getDynamicRedditQueries();
+  await logProcessing(
+    "running",
+    `[INFO] Reddit query plan | total: ${queries.length} | baseline: ${metadata.baselineCount} | dynamic: ${metadata.dynamicCount} | organizations: ${metadata.organizationCount}`
+  );
+
+  for (const query of queries) {
     try {
       const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=10`;
       const res = await axios.get(url, { headers: { "User-Agent": "rakshak-ai" } });

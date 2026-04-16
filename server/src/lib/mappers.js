@@ -66,6 +66,7 @@ export function mapOrganization(orgDoc) {
     org_name: orgDoc.orgName,
     sector: orgDoc.sector,
     domain: orgDoc.domain,
+    description: orgDoc.description ?? "",
     keywords: orgDoc.keywords ?? [],
   };
 }
