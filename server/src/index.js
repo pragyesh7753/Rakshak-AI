@@ -47,6 +47,14 @@ function readinessPayload() {
   };
 }
 
+app.use(
+  cors({
+    origin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.get("/health", (_req, res) => {
   res.json(healthPayload());
 });
@@ -64,14 +72,6 @@ app.get("/api/ready", (_req, res) => {
   const payload = readinessPayload();
   res.status(payload.ok ? 200 : 503).json(payload);
 });
-
-app.use(
-  cors({
-    origin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
 app.use(express.json({ limit: "1mb" }));
 app.use(clerkMiddleware());
 
