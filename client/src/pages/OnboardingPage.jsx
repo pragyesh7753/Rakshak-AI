@@ -90,14 +90,15 @@ export function OnboardingPage() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: '#0b0f19',
+        background: '#0d0f14',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
         <Loader2
-          size={36}
-          style={{ color: '#4cd7f6', animation: 'spin 1s linear infinite' }}
+          size={32}
+          style={{ color: '#34d399' }}
+          className="auth-spinner"
         />
       </div>
     );

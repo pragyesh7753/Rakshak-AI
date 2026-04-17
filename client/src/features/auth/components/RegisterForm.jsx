@@ -183,7 +183,7 @@ const RegisterForm = () => {
           </div>
 
           <div className="otp-icon">
-            <Mail size={44} color="#4cd7f6" strokeWidth={1.5} />
+            <Mail size={44} color="#34d399" strokeWidth={1.5} />
           </div>
 
           <h1 className="auth-title">Verify Your Email</h1>
