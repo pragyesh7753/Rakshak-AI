@@ -1,0 +1,275 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Design Tokens ────────────────────────────────────────────────────────── */
+@theme inline {
+  --font-sans: 'Inter', 'Geist', 'Geist Fallback', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+/* ─── Rakshak AI SOC Dark Theme (always dark) ──────────────────────────────── */
+:root,
+.dark {
+  /* Core surfaces */
+  --background:          #0f172a;
+  --foreground:          #f8fafc;
+  --card:                #1e293b;
+  --card-foreground:     #f8fafc;
+  --popover:             #1e293b;
+  --popover-foreground:  #f8fafc;
+
+  /* Brand colours */
+  --primary:             #60a5fa;
+  --primary-foreground:  #ffffff;
+  --secondary:           #22d3ee;
+  --secondary-foreground:#ffffff;
+
+  /* Muted / supporting */
+  --muted:               #334155;
+  --muted-foreground:    #cbd5e1;
+  --accent:              #60a5fa;
+  --accent-foreground:   #ffffff;
+  --destructive:         #f87171;
+  --destructive-foreground: #ffffff;
+
+  /* Borders / inputs */
+  --border:              #334155;
+  --input:               #334155;
+  --ring:                #60a5fa;
+
+  /* Chart palette */
+  --chart-1: #60a5fa;
+  --chart-2: #22d3ee;
+  --chart-3: #fbbf24;
+  --chart-4: #34d399;
+  --chart-5: #8B5CF6;
+
+  /* Radius */
+  --radius: 0.75rem;
+
+  /* Sidebar */
+  --sidebar:                   #1e293b;
+  --sidebar-foreground:        #f8fafc;
+  --sidebar-primary:           #60a5fa;
+  --sidebar-primary-foreground:#ffffff;
+  --sidebar-accent:            #334155;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border:            #334155;
+  --sidebar-ring:              #60a5fa;
+
+  /* Semantic risk tokens */
+  --risk-high:    #f87171;
+  --risk-medium:  #fbbf24;
+  --risk-low:     #34d399;
+  --risk-safe:    #34d399;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ─── Risk & Threat-Type Badges ────────────────────────────────────────────── */
+@layer utilities {
+  /* Risk level badges */
+  .badge-high {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(248,113,113,.15);
+    color: #f87171;
+    border: 1px solid rgba(248,113,113,.3);
+  }
+  .badge-medium {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(251,191,36,.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,.3);
+  }
+  .badge-low {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(52,211,153,.15);
+    color: #34d399;
+    border: 1px solid rgba(52,211,153,.3);
+  }
+  .badge-safe {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(52,211,153,.15);
+    color: #34d399;
+    border: 1px solid rgba(52,211,153,.3);
+  }
+
+  /* Threat type badges */
+  .badge-phishing {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(248,113,113,.15);
+    color: #f87171;
+    border: 1px solid rgba(248,113,113,.3);
+  }
+  .badge-scam {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(251,191,36,.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,.3);
+  }
+  .badge-bec,
+  .badge-threat {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(139,92,246,.15);
+    color: #8B5CF6;
+    border: 1px solid rgba(139,92,246,.3);
+  }
+  .badge-impersonation {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(236,72,153,.15);
+    color: #EC4899;
+    border: 1px solid rgba(236,72,153,.3);
+  }
+  .badge-info {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(96,165,250,.15);
+    color: #60a5fa;
+    border: 1px solid rgba(96,165,250,.3);
+  }
+  .badge-neutral {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(156,163,175,.15);
+    color: #cbd5e1;
+    border: 1px solid rgba(156,163,175,.3);
+  }
+
+  /* Sentiment badges */
+  .badge-panic {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(248,113,113,.15);
+    color: #f87171;
+    border: 1px solid rgba(248,113,113,.3);
+  }
+  .badge-urgent {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(251,191,36,.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,.3);
+  }
+  .badge-aggressive {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+    background-color: rgba(249,115,22,.15);
+    color: #F97316;
+    border: 1px solid rgba(249,115,22,.3);
+  }
+
+  /* Flag pill tags */
+  .flag-pill {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium;
+    background-color: #334155;
+    color: #cbd5e1;
+    border: 1px solid #475569;
+  }
+
+  /* SOC card */
+  .soc-card {
+    @apply rounded-xl border p-6;
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+
+  /* Risk rows in tables */
+  .row-high {
+    border-left: 3px solid #f87171;
+    background-color: rgba(248,113,113,.04);
+  }
+  .row-medium {
+    border-left: 3px solid #fbbf24;
+    background-color: rgba(251,191,36,.03);
+  }
+  .row-low {
+    border-left: 3px solid #34d399;
+  }
+
+  /* Risk score progress bar */
+  .risk-bar-track {
+    @apply h-1.5 w-full rounded-full overflow-hidden;
+    background-color: #334155;
+  }
+  .risk-bar-fill-high   { @apply h-full rounded-full; background-color: #f87171; }
+  .risk-bar-fill-medium { @apply h-full rounded-full; background-color: #fbbf24; }
+  .risk-bar-fill-low    { @apply h-full rounded-full; background-color: #34d399; }
+}
+
+/* ─── Skeleton Loader ───────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(to right, #334155 8%, #2D3748 18%, #334155 33%);
+  background-size: 936px 104px;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: #0f172a; }
+::-webkit-scrollbar-thumb  { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ─── Recharts dark overrides ───────────────────────────────────────────────── */
+.recharts-cartesian-axis-tick text { fill: #94a3b8; font-size: 12px; }
+.recharts-legend-item-text          { color: #cbd5e1 !important; font-size: 12px; }
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  border-radius: 8px !important;
+}
+.recharts-tooltip-label { color: #f8fafc !important; }
