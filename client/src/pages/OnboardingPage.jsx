@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Loader2, Globe, Briefcase, Tag } from 'lucide-react';
 import { useAuthedApi } from '@/hooks/use-authed-api';
 import { getOrganization, upsertOrganization } from '@/features/organization/services/organization.service';
+import '@/features/auth/components/auth.css';
 
 function normalizeKeywords(value) {
   return value
@@ -39,14 +38,8 @@ export function OnboardingPage() {
   }, [form, saving]);
 
   useEffect(() => {
-    if (!isAuthLoaded) {
-      return;
-    }
-
-    if (!isSignedIn) {
-      setLoading(false);
-      return;
-    }
+    if (!isAuthLoaded) return;
+    if (!isSignedIn) { setLoading(false); return; }
 
     let active = true;
 
@@ -54,7 +47,6 @@ export function OnboardingPage() {
       try {
         const org = await callService(getOrganization);
         if (!active) return;
-
         if (org?.org_name && org?.domain) {
           navigate('/dashboard', { replace: true });
           return;
@@ -63,17 +55,12 @@ export function OnboardingPage() {
         if (!active) return;
         console.error('[OnboardingPage] bootstrap:', bootstrapError);
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
     bootstrap();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [callService, isAuthLoaded, isSignedIn, navigate]);
 
   async function handleSubmit(event) {
@@ -98,98 +85,166 @@ export function OnboardingPage() {
     }
   }
 
+  /* ── Loading state ─────────────────────────────────────── */
   if (!isAuthLoaded || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+      <div style={{
+        minHeight: '100vh',
+        background: '#0b0f19',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Loader2
+          size={36}
+          style={{ color: '#4cd7f6', animation: 'spin 1s linear infinite' }}
+        />
       </div>
     );
   }
 
-  if (!isSignedIn) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isSignedIn) return <Navigate to="/login" replace />;
 
+  /* ── Main page ─────────────────────────────────────────── */
   return (
-    <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-2xl px-4 py-8">
-        <div className="mb-4">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-sm text-primary-foreground hover:text-white dark:text-muted-foreground dark:hover:text-foreground transition"
-          >
-            {'<- Back to home'}
-          </Link>
+    <section className="auth-page">
+      <div className="auth-back-link">
+        <Link to="/">← Back to home</Link>
+      </div>
+
+      <div className="auth-card auth-card--wide">
+        {/* Logo */}
+        <div className="auth-logo">
+          <img src="/logo.png" alt="Rakshak AI" />
         </div>
 
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6 sm:p-8 shadow-2xl">
-          <h1 className="text-2xl font-semibold text-white">Finish Organization Setup</h1>
-          <p className="mt-2 text-sm text-gray-400">
-            Add your organization profile so Rakshak can personalize alerts and threat intelligence.
-          </p>
+        {/* Step indicator */}
+        <div className="auth-step-indicator">
+          <span className="auth-step-label">Step 2 of 2 — Organization Setup</span>
+          <div className="auth-progress-bar" style={{ width: '100%' }}>
+            <div className="auth-progress-fill" style={{ width: '100%' }} />
+          </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label className="mb-1 block text-sm text-gray-300">Organization Name</label>
-              <Input
+        <h1 className="auth-title">Finish Organization Setup</h1>
+        <p className="auth-subtitle">
+          Add your organization profile so Rakshak can personalize alerts and threat intelligence.
+        </p>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {/* Organization Name */}
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="ob-org-name">Organization Name</label>
+            <div className="auth-input-wrap">
+              <input
+                id="ob-org-name"
+                type="text"
+                className="auth-input"
                 value={form.org_name}
-                onChange={(event) => setForm((prev) => ({ ...prev, org_name: event.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, org_name: e.target.value }))}
                 placeholder="Acme Security Pvt Ltd"
                 required
               />
             </div>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-sm text-gray-300">Sector</label>
-              <Input
+          {/* Sector */}
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="ob-sector">Sector / Industry</label>
+            <div className="auth-input-wrap">
+              <span className="auth-input-icon-left">
+                <Briefcase size={15} />
+              </span>
+              <input
+                id="ob-sector"
+                type="text"
+                className="auth-input auth-input--icon-left"
                 value={form.sector}
-                onChange={(event) => setForm((prev) => ({ ...prev, sector: event.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, sector: e.target.value }))}
                 placeholder="Healthcare, Finance, Education"
                 required
               />
             </div>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-sm text-gray-300">Primary Domain</label>
-              <Input
+          {/* Primary Domain */}
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="ob-domain">Primary Domain</label>
+            <div className="auth-input-wrap">
+              <span className="auth-input-icon-left">
+                <Globe size={15} />
+              </span>
+              <input
+                id="ob-domain"
+                type="text"
+                className="auth-input auth-input--icon-left"
                 value={form.domain}
-                onChange={(event) => setForm((prev) => ({ ...prev, domain: event.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, domain: e.target.value }))}
                 placeholder="acme-security.com"
                 required
               />
             </div>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-sm text-gray-300">Organization Description</label>
-              <textarea
-                value={form.description}
-                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-                placeholder="Describe your services, tech stack, customer base, and what kind of cyber risks you care about."
-                className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                required
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                This helps generate sector-specific multilingual threat keywords.
-              </p>
-            </div>
+          {/* Description */}
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="ob-description">Organization Description</label>
+            <textarea
+              id="ob-description"
+              className="auth-textarea"
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Describe your services, tech stack, customer base, and what kind of cyber risks you care about."
+              required
+            />
+            <p className="auth-helper">
+              This helps generate sector-specific multilingual threat keywords.
+            </p>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-sm text-gray-300">Keywords (optional)</label>
-              <Input
+          {/* Keywords */}
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="ob-keywords">Keywords (optional)</label>
+            <div className="auth-input-wrap">
+              <span className="auth-input-icon-left">
+                <Tag size={15} />
+              </span>
+              <input
+                id="ob-keywords"
+                type="text"
+                className="auth-input auth-input--icon-left"
                 value={form.keywords}
-                onChange={(event) => setForm((prev) => ({ ...prev, keywords: event.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, keywords: e.target.value }))}
                 placeholder="ransomware, phishing, data breach"
               />
-              <p className="mt-1 text-xs text-gray-500">Separate multiple keywords with commas.</p>
             </div>
+            <p className="auth-helper">Separate multiple keywords with commas.</p>
+          </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+          {/* Error */}
+          {error && (
+            <div className="auth-error" role="alert">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              {error}
+            </div>
+          )}
 
-            <Button type="submit" disabled={submitDisabled} className="w-full">
-              {saving ? 'Saving organization...' : 'Save and continue'}
-            </Button>
-          </form>
-        </div>
+          {/* CTA */}
+          <button
+            id="onboarding-submit"
+            type="submit"
+            className="auth-btn"
+            disabled={submitDisabled}
+          >
+            {saving ? (
+              <><span className="auth-spinner" />Saving organization...</>
+            ) : (
+              "Save and Continue →"
+            )}
+          </button>
+        </form>
       </div>
     </section>
   );

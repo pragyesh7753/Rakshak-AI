@@ -3,14 +3,13 @@
 import { useAuth, useClerk, useSignIn } from "@clerk/clerk-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { Eye, EyeOff } from "lucide-react";
 import {
   checkBackendHealth,
   createTokenGetter,
   verifyBackendSession,
 } from "@/features/auth/services/backend-auth.service";
+import "./auth.css";
 
 const LoginForm = () => {
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -20,15 +19,14 @@ const LoginForm = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [trustDevice, setTrustDevice] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!isLoaded) {
-      return;
-    }
+    if (!isLoaded) return;
 
     setError("");
     setLoading(true);
@@ -40,10 +38,7 @@ const LoginForm = () => {
         return;
       }
 
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
+      const result = await signIn.create({ identifier: email, password });
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
@@ -63,7 +58,8 @@ const LoginForm = () => {
 
       setError("Sign in requires additional steps. Please complete verification in Clerk.");
     } catch (authError) {
-      const message = authError?.errors?.[0]?.longMessage ?? authError?.message ?? "Failed to sign in.";
+      const message =
+        authError?.errors?.[0]?.longMessage ?? authError?.message ?? "Failed to sign in.";
       setError(message);
     } finally {
       setLoading(false);
@@ -71,80 +67,111 @@ const LoginForm = () => {
   }
 
   return (
-    <section className="bg-primary dark:bg-background min-h-screen flex items-center justify-center">
-      <div className="md:py-8 max-w-lg px-4 sm:px-0 mx-auto w-full">
-        <div className="mb-4">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-primary-foreground hover:text-white dark:text-muted-foreground dark:hover:text-foreground transition">
-            {'<- Back to home'}
-          </Link>
+    <section className="auth-page">
+      <div className="auth-back-link">
+        <Link to="/">← Back to home</Link>
+      </div>
+
+      <div className="auth-card">
+        <div className="auth-logo">
+          <img src="/logo.png" alt="Rakshak AI" />
         </div>
 
-        <div className="bg-card border border-border shadow-2xl rounded-xl px-6 py-8 sm:p-8">
-          <div className="flex justify-center mb-6">
-            <img src="/logo.png" alt="Rakshak AI" className="h-16 w-40 object-contain" />
-          </div>
+        <h1 className="auth-title">Access Threat Dashboard</h1>
+        <p className="auth-subtitle">Monitor cyber threats targeting your organization</p>
 
-          <h1 className="text-4xl font-semibold text-white text-center">Access Threat Dashboard</h1>
-          <p className="mt-2 text-lg text-gray-400 text-center">Monitor cyber threats targeting your organization</p>
-
-          <form className="mt-10 space-y-5" onSubmit={handleSubmit}>
-            <div>
-              <label className="mb-2 block text-sm text-gray-300">Work Email</label>
-              <Input
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {/* Work Email */}
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="login-email">Work Email</label>
+            <div className="auth-input-wrap">
+              <input
+                id="login-email"
                 type="email"
+                className="auth-input"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@organization.com"
                 required
-                className="dark:bg-background"
+                autoComplete="email"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="mb-2 block text-sm text-gray-300">Password</label>
-              <Input
-                type="password"
+          {/* Password */}
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="login-password">Password</label>
+            <div className="auth-input-wrap">
+              <input
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                className="auth-input auth-input--icon-right"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
-                className="dark:bg-background"
+                autoComplete="current-password"
               />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-3 text-sm text-white cursor-pointer">
-                <Checkbox
-                  checked={trustDevice}
-                  onCheckedChange={(checked) => setTrustDevice(Boolean(checked))}
-                  className="cursor-pointer"
-                />
-                Trust this device
-              </label>
-
               <button
                 type="button"
-                className="text-sm font-medium text-white hover:text-cyan-300 transition"
-                onClick={() => setError("Please use Clerk account recovery flow for password reset.")}
+                className="auth-input-icon-btn"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                Forgot password?
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+          </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+          {/* Trust device + Forgot */}
+          <div className="auth-row">
+            <label className="auth-check-label">
+              <input
+                type="checkbox"
+                checked={trustDevice}
+                onChange={(e) => setTrustDevice(e.target.checked)}
+              />
+              Trust this device
+            </label>
+            <button
+              type="button"
+              className="auth-text-btn"
+              onClick={() => setError("Please use Clerk account recovery flow for password reset.")}
+            >
+              Forgot password?
+            </button>
+          </div>
 
-            <Button type="submit" className="w-full rounded-lg" disabled={loading || !isLoaded}>
-              {loading ? "Signing in..." : "Open Security Dashboard 🔐"}
-            </Button>
+          {/* Error */}
+          {error && (
+            <div className="auth-error" role="alert">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              {error}
+            </div>
+          )}
 
-            <p className="text-center text-sm text-gray-400 pt-1">
-              New organization?{' '}
-              <Link to="/register" className="text-white underline underline-offset-4 hover:text-cyan-300">
-                Create account
-              </Link>
-            </p>
-          </form>
-        </div>
+          {/* CTA */}
+          <button
+            id="login-submit"
+            type="submit"
+            className="auth-btn"
+            disabled={loading || !isLoaded}
+          >
+            {loading ? (
+              <><span className="auth-spinner" />Signing in...</>
+            ) : (
+              "Open Security Dashboard 🔐"
+            )}
+          </button>
+
+          {/* Footer */}
+          <p className="auth-footer">
+            New organization?{" "}
+            <Link to="/register">Create account</Link>
+          </p>
+        </form>
       </div>
     </section>
   );
