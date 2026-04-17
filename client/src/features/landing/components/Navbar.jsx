@@ -11,10 +11,10 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
   const navItems = [
-    { name: "Features", href: "#features" },
-    { name: "How it Works", href: "#how-it-works" },
-    { name: "Pricing", href: "#pricing" },
-    { name: "Contact", href: "#contact" },
+    { name: "Features", href: "/#features" },
+    { name: "How it Works", href: "/#how-it-works" },
+    { name: "Pricing", href: "/#pricing" },
+    { name: "Contact", href: "/#contact" },
   ];
 
   useEffect(() => {
@@ -41,14 +41,21 @@ export function Navbar() {
 
           {/* DESKTOP NAV */}
           <div className="hidden md:flex items-center gap-10 mx-auto">
+            <Link
+              to="/"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition"
+            >
+              Home
+            </Link>
             {navItems.map((item) => (
-              <Link
+              <a
                 key={item.name}
-                to={item.href}
+                href={item.href}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition"
               >
                 {item.name}
-              </Link>
+              </a>
             ))}
           </div>
 
@@ -79,15 +86,22 @@ export function Navbar() {
           )}
         >
           <div className="rounded-2xl border border-border bg-background/80 backdrop-blur-xl shadow-lg p-4 flex flex-col gap-3">
+            <Link
+              to="/"
+              onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setIsOpen(false) }}
+              className="py-2 px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition"
+            >
+              Home
+            </Link>
             {navItems.map((item) => (
-              <Link
+              <a
                 key={item.name}
-                to={item.href}
+                href={item.href}
                 onClick={() => setIsOpen(false)}
                 className="py-2 px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition"
               >
                 {item.name}
-              </Link>
+              </a>
             ))}
 
             <Button asChild variant="ghost" className="rounded-full">

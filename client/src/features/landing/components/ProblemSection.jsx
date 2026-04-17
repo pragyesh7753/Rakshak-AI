@@ -21,7 +21,7 @@ export function ProblemSection() {
   ]
 
   return (
-    <section className="py-20 md:py-28 bg-background relative border-t border-border/50">
+    <section id="features" className="py-20 md:py-28 bg-background relative border-t border-border/50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16 space-y-4">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground text-balance">

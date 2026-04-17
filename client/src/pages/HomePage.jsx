@@ -5,6 +5,7 @@ import { FeatureFlow } from '@/features/landing/components/FeatureFlow'
 import { AiRiskEngine } from '@/features/landing/components/AiRiskEngine'
 import { ImpactSection } from '@/features/landing/components/ImpactSection'
 import { HowItWorks } from '@/features/landing/components/HowItWorks'
+import { PricingSection } from '@/features/landing/components/PricingSection'
 import { TargetAudience } from '@/features/landing/components/TargetAudience'
 import { CTASection } from '@/features/landing/components/CTASection'
 import { Footer } from '@/features/landing/components/Footer'
@@ -19,6 +20,7 @@ export function HomePage() {
         <FeatureFlow />
         <AiRiskEngine />
         <ImpactSection />
+        <PricingSection />
         <HowItWorks />
         <TargetAudience />
         <CTASection />

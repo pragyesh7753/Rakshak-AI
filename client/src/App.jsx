@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicOnlyRoute } from '@/routes/PublicOnlyRoute'
+import { PageTransition } from '@/components/PageTransition'
 
 export default function App() {
 	useEffect(() => {
@@ -14,41 +15,43 @@ export default function App() {
 	}, [])
 
 	return (
-		<Routes>
-			<Route path="/" element={<HomePage />} />
-			<Route
-				path="/login"
-				element={
-					<PublicOnlyRoute>
-						<LoginPage />
-					</PublicOnlyRoute>
-				}
-			/>
-			<Route
-				path="/register"
-				element={
-					<PublicOnlyRoute redirectTo="/onboarding">
-						<RegisterPage />
-					</PublicOnlyRoute>
-				}
-			/>
-			<Route
-				path="/onboarding"
-				element={
-					<ProtectedRoute>
-						<OnboardingPage />
-					</ProtectedRoute>
-				}
-			/>
-			<Route
-				path="/dashboard"
-				element={
-					<ProtectedRoute>
-						<DashboardPage />
-					</ProtectedRoute>
-				}
-			/>
-			<Route path="*" element={<Navigate to="/" replace />} />
-		</Routes>
+		<PageTransition>
+			<Routes>
+				<Route path="/" element={<HomePage />} />
+				<Route
+					path="/login"
+					element={
+						<PublicOnlyRoute>
+							<LoginPage />
+						</PublicOnlyRoute>
+					}
+				/>
+				<Route
+					path="/register"
+					element={
+						<PublicOnlyRoute redirectTo="/onboarding">
+							<RegisterPage />
+						</PublicOnlyRoute>
+					}
+				/>
+				<Route
+					path="/onboarding"
+					element={
+						<ProtectedRoute>
+							<OnboardingPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/dashboard"
+					element={
+						<ProtectedRoute>
+							<DashboardPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route path="*" element={<Navigate to="/" replace />} />
+			</Routes>
+		</PageTransition>
 	)
 }

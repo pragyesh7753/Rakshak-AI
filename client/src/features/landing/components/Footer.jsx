@@ -1,7 +1,18 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowUp } from 'lucide-react'
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 300)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
   const footerLinks = {
     product: [
@@ -45,12 +56,12 @@ export function Footer() {
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    to={link.href}
+                  <a
+                    href={link.href}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -62,12 +73,12 @@ export function Footer() {
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    to={link.href}
+                  <a
+                    href={link.href}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -79,12 +90,12 @@ export function Footer() {
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    to={link.href}
+                  <a
+                    href={link.href}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -115,6 +126,20 @@ export function Footer() {
                 <path d="M18.656 0H1.344C.6 0 0 .6 0 1.344v17.312C0 19.4.6 20 1.344 20h17.312c.744 0 1.344-.6 1.344-1.344V1.344C20 .6 19.4 0 18.656 0zM5.906 17.044H2.97V7.497h2.936v9.547zM4.438 6.198a1.704 1.704 0 110 -3.408 1.704 1.704 0 010 3.408zM17.044 17.044h-2.936v-4.64c0-1.107-.02-2.53-1.542-2.53-1.544 0-1.78 1.205-1.78 2.45v4.72h-2.936V7.497h2.82v1.304h.04c.392-.742 1.35-1.523 2.779-1.523 2.97 0 3.519 1.954 3.519 4.5v5.266z" />
               </svg>
             </Link>
+
+            {/* Scroll to top */}
+            <button
+              onClick={scrollToTop}
+              aria-label="Scroll to top"
+              className={`
+                ml-2 p-2 rounded-full border border-border bg-muted/50 text-muted-foreground
+                hover:bg-primary hover:text-primary-foreground hover:border-primary
+                transition-all duration-300
+                ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}
+              `}
+            >
+              <ArrowUp className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
