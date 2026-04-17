@@ -1,7 +1,7 @@
-import { Alert } from "../../models/Alert.js";
-import { ProcessingLog } from "../../models/ProcessingLog.js";
-import { RawPost } from "../../models/RawPost.js";
-import { Threat } from "../../models/Threat.js";
+import { Alert } from "../../../models/Alert.js";
+import { ProcessingLog } from "../../../models/ProcessingLog.js";
+import { RawPost } from "../../../models/RawPost.js";
+import { Threat } from "../../../models/Threat.js";
 import {
   getHuggingFaceModelConfig,
   getMiniLMContextSimilarities,
@@ -576,8 +576,11 @@ function normalizeReasoningAnalysis(parsedPayload, fallbackAnalysis) {
   };
 }
 
-async function logProcessing(status, message) {
+async function logProcessing(status, message, options = {}) {
+  const organizationId = options?.organizationId ?? null;
+
   await ProcessingLog.create({
+    organization: organizationId,
     jobType: "ai_analysis",
     status,
     message,
@@ -725,6 +728,12 @@ export async function analyzePosts() {
           },
         },
         { upsert: true }
+      );
+
+      await logProcessing(
+        "success",
+        `[ORG] Threat routed | threat_id: ${String(threat._id)} | channel: ${finalRouteChannel}`,
+        { organizationId: org._id }
       );
     }
 

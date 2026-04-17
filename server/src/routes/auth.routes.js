@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireClerkAuth } from "../middleware/auth.js";
+import { requireClerkAuth } from "../shared/auth/clerkAuth.js";
 
 const router = Router();
 

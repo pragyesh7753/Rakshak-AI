@@ -3,24 +3,46 @@ import { Alert } from "../models/Alert.js";
 import { Organization } from "../models/Organization.js";
 import { Threat } from "../models/Threat.js";
 import { ThreatSource } from "../models/ThreatSource.js";
-import { mapThreat } from "../lib/mappers.js";
-import { getUserId } from "../middleware/auth.js";
+import { mapThreat } from "../shared/mappers/entityMappers.js";
+import { getUserId } from "../shared/auth/clerkAuth.js";
+
+async function resolveOrganizationId(userId) {
+  const organization = await Organization.findOne({ clerkUserId: userId }).select("_id").lean();
+  return organization?._id ?? null;
+}
 
 export async function getSummaryStats(req, res) {
   try {
     const userId = getUserId(req);
-    const organization = await Organization.findOne({ clerkUserId: userId }).select("_id").lean();
+    const organizationId = await resolveOrganizationId(userId);
 
-    const unreadFilter = organization
-      ? { organization: organization._id, isRead: false }
-      : { isRead: false };
+    if (!organizationId) {
+      return res.json({ totalThreats: 0, highSeverity: 0, unreadAlerts: 0, activeSources: 0 });
+    }
 
-    const [totalThreats, highSeverity, unreadAlerts, activeSources] = await Promise.all([
-      Threat.countDocuments(),
-      Threat.countDocuments({ severityScore: { $gte: 7 } }),
+    const unreadFilter = { organization: organizationId, isRead: false };
+
+    const [totalThreats, highSeverityRows, unreadAlerts, activeSources] = await Promise.all([
+      Alert.countDocuments({ organization: organizationId }),
+      Alert.aggregate([
+        { $match: { organization: organizationId } },
+        {
+          $lookup: {
+            from: Threat.collection.name,
+            localField: "threat",
+            foreignField: "_id",
+            as: "threatDoc",
+          },
+        },
+        { $unwind: "$threatDoc" },
+        { $match: { "threatDoc.severityScore": { $gte: 7 } } },
+        { $count: "count" },
+      ]),
       Alert.countDocuments(unreadFilter),
       ThreatSource.countDocuments({ isActive: true }),
     ]);
+
+    const highSeverity = Number(highSeverityRows?.[0]?.count ?? 0);
 
     res.json({ totalThreats, highSeverity, unreadAlerts, activeSources });
   } catch (error) {
@@ -31,15 +53,31 @@ export async function getSummaryStats(req, res) {
 
 export async function getRecentThreats(req, res) {
   try {
+    const userId = getUserId(req);
+    const organizationId = await resolveOrganizationId(userId);
+
+    if (!organizationId) {
+      return res.json([]);
+    }
+
     const limit = Math.min(Number(req.query.limit ?? 10), 50);
     const offset = Math.max(Number(req.query.offset ?? 0), 0);
 
-    const threats = await Threat.find({})
+    const alerts = await Alert.find({ organization: organizationId })
       .sort({ createdAt: -1 })
       .skip(offset)
       .limit(limit)
-      .populate({ path: "rawPost", options: { lean: true } })
+      .populate({
+        path: "threat",
+        options: { lean: true },
+        populate: {
+          path: "rawPost",
+          options: { lean: true },
+        },
+      })
       .lean();
+
+    const threats = alerts.map((item) => item?.threat).filter(Boolean);
 
     const response = threats.map((threat) => mapThreat(threat));
     res.json(response);
@@ -51,9 +89,24 @@ export async function getRecentThreats(req, res) {
 
 export async function getThreatDetails(req, res) {
   try {
+    const userId = getUserId(req);
+    const organizationId = await resolveOrganizationId(userId);
+
+    if (!organizationId) {
+      return res.status(404).json({ error: "Threat not found" });
+    }
+
     const { threatId } = req.params;
     if (!mongoose.isValidObjectId(threatId)) {
       return res.status(400).json({ error: "Invalid threat id" });
+    }
+
+    const hasAccess = await Alert.findOne({ organization: organizationId, threat: threatId })
+      .select("_id")
+      .lean();
+
+    if (!hasAccess) {
+      return res.status(404).json({ error: "Threat not found" });
     }
 
     const threat = await Threat.findById(threatId)

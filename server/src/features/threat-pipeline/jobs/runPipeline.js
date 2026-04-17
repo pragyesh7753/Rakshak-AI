@@ -1,7 +1,7 @@
 import "dotenv/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { connectMongo } from "../../config/mongodb.js";
+import { connectMongo } from "../../../shared/config/mongodb.js";
 import { analyzePosts } from "../layers/analyzePosts.js";
 import { scrapeReddit } from "../scrapers/redditScraper.js";
 

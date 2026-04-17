@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 import { DomainActivity } from "../models/DomainActivity.js";
 import { Organization } from "../models/Organization.js";
 import { SimilarDomain } from "../models/SimilarDomain.js";
-import { mapDomain, mapDomainActivity } from "../lib/mappers.js";
-import { getUserId } from "../middleware/auth.js";
+import { mapDomain, mapDomainActivity } from "../shared/mappers/entityMappers.js";
+import { getUserId } from "../shared/auth/clerkAuth.js";
 
 async function resolveOrganization(userId) {
   return Organization.findOne({ clerkUserId: userId }).select("_id").lean();
@@ -31,9 +31,27 @@ export async function getSimilarDomains(req, res) {
 
 export async function getDomainActivities(req, res) {
   try {
+    const userId = getUserId(req);
+    const organization = await resolveOrganization(userId);
+
+    if (!organization) {
+      return res.json([]);
+    }
+
     const { domainId } = req.params;
     if (!mongoose.isValidObjectId(domainId)) {
       return res.status(400).json({ error: "Invalid domain id" });
+    }
+
+    const isDomainOwned = await SimilarDomain.findOne({
+      _id: domainId,
+      organization: organization._id,
+    })
+      .select("_id")
+      .lean();
+
+    if (!isDomainOwned) {
+      return res.status(404).json({ error: "Domain not found" });
     }
 
     const activities = await DomainActivity.find({ domain: domainId })
@@ -49,9 +67,25 @@ export async function getDomainActivities(req, res) {
 
 export async function getGlobalDomainActivities(req, res) {
   try {
+    const userId = getUserId(req);
+    const organization = await resolveOrganization(userId);
+
+    if (!organization) {
+      return res.json([]);
+    }
+
     const limit = Math.min(Number(req.query.limit ?? 20), 100);
 
-    const activities = await DomainActivity.find({})
+    const ownedDomains = await SimilarDomain.find({ organization: organization._id })
+      .select("_id")
+      .lean();
+    const domainIds = ownedDomains.map((item) => item._id);
+
+    if (domainIds.length === 0) {
+      return res.json([]);
+    }
+
+    const activities = await DomainActivity.find({ domain: { $in: domainIds } })
       .sort({ detectedAt: -1 })
       .limit(limit)
       .populate({ path: "domain", select: "domainName", options: { lean: true } })

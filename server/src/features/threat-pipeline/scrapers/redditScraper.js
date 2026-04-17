@@ -1,7 +1,7 @@
 import axios from "axios";
-import { ProcessingLog } from "../../models/ProcessingLog.js";
-import { RawPost } from "../../models/RawPost.js";
-import { ThreatSource } from "../../models/ThreatSource.js";
+import { ProcessingLog } from "../../../models/ProcessingLog.js";
+import { RawPost } from "../../../models/RawPost.js";
+import { ThreatSource } from "../../../models/ThreatSource.js";
 import { getDynamicRedditQueries } from "../layers/keywordBank.js";
 
 async function logProcessing(status, message) {

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { Organization } from "../../models/Organization.js";
-import { OrganizationKeywordBank } from "../../models/OrganizationKeywordBank.js";
+import { Organization } from "../../../models/Organization.js";
+import { OrganizationKeywordBank } from "../../../models/OrganizationKeywordBank.js";
 import {
   getMiniLMContextSimilarities,
   isHuggingFaceConfigured,

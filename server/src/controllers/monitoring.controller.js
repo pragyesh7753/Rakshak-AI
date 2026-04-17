@@ -1,4 +1,6 @@
 import { SecurityThreatLog } from "../models/SecurityThreatLog.js";
+import { Organization } from "../models/Organization.js";
+import { getUserId } from "../shared/auth/clerkAuth.js";
 
 const TRAFFIC_MARKERS = [0, 4, 8, 12, 16, 20, 24];
 const TRAFFIC_LABELS = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "23:59"];
@@ -20,6 +22,12 @@ function riskLabel(weight) {
   if (weight >= 3) return "High";
   if (weight >= 2) return "Medium";
   return "Low";
+}
+
+async function resolveOrganizationId(req) {
+  const userId = getUserId(req);
+  const organization = await Organization.findOne({ clerkUserId: userId }).select("_id").lean();
+  return organization?._id ?? null;
 }
 
 function buildTrafficTrend(logs) {
@@ -66,10 +74,26 @@ function buildSuspiciousIps(logs) {
     .slice(0, 6);
 }
 
-export async function getSystemSecurityStatus(_req, res) {
+export async function getSystemSecurityStatus(req, res) {
   try {
+    const organizationId = await resolveOrganizationId(req);
+    if (!organizationId) {
+      return res.json({
+        status: "Safe",
+        score: 100,
+        metrics: {
+          activeThreats: 0,
+          blockedIPs: 0,
+          failedLogins: 0,
+          apiAnomalies: 0,
+        },
+        trafficTrend: TRAFFIC_LABELS.map((time) => ({ time, value: 0 })),
+        suspiciousIPs: [],
+      });
+    }
+
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const logs = await SecurityThreatLog.find({ timestamp: { $gte: since } })
+    const logs = await SecurityThreatLog.find({ organization: organizationId, timestamp: { $gte: since } })
       .select("timestamp ip type resource risk status")
       .lean();
 
@@ -117,9 +141,14 @@ export async function getSystemSecurityStatus(_req, res) {
 
 export async function getSecurityThreatLogs(req, res) {
   try {
+    const organizationId = await resolveOrganizationId(req);
+    if (!organizationId) {
+      return res.json([]);
+    }
+
     const limit = Math.min(Number(req.query.limit ?? 20), 100);
 
-    const logs = await SecurityThreatLog.find({})
+    const logs = await SecurityThreatLog.find({ organization: organizationId })
       .sort({ timestamp: -1 })
       .limit(limit)
       .lean();

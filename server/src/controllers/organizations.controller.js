@@ -1,8 +1,8 @@
-import { mapOrganization } from "../lib/mappers.js";
+import { mapOrganization } from "../shared/mappers/entityMappers.js";
 import { Organization } from "../models/Organization.js";
 import { OrganizationKeywordBank } from "../models/OrganizationKeywordBank.js";
-import { getUserId } from "../middleware/auth.js";
-import { refreshOrganizationKeywordBank } from "../workers/layers/keywordBank.js";
+import { getUserId } from "../shared/auth/clerkAuth.js";
+import { refreshOrganizationKeywordBank } from "../features/threat-pipeline/layers/keywordBank.js";
 
 function mapKeywordBank(bankDoc) {
   if (!bankDoc) {

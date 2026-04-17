@@ -1,5 +1,7 @@
 import { ProcessingLog } from "../models/ProcessingLog.js";
-import { isPipelineRunning, triggerPipelineRun } from "../workers/jobs/runPipeline.js";
+import { Organization } from "../models/Organization.js";
+import { isPipelineRunning, triggerPipelineRun } from "../features/threat-pipeline/jobs/runPipeline.js";
+import { getUserId } from "../shared/auth/clerkAuth.js";
 
 function normalizeStatus(status) {
   const lower = String(status ?? "").toLowerCase();
@@ -9,11 +11,22 @@ function normalizeStatus(status) {
   return "other";
 }
 
+async function resolveOrganizationId(req) {
+  const userId = getUserId(req);
+  const organization = await Organization.findOne({ clerkUserId: userId }).select("_id").lean();
+  return organization?._id ?? null;
+}
+
 export async function getProcessingLogs(req, res) {
   try {
     const limit = Math.min(Number(req.query.limit ?? 20), 100);
+    const organizationId = await resolveOrganizationId(req);
 
-    const logs = await ProcessingLog.find({})
+    if (!organizationId) {
+      return res.json([]);
+    }
+
+    const logs = await ProcessingLog.find({ organization: organizationId })
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
@@ -37,10 +50,21 @@ export async function getProcessingLogSummary(req, res) {
   try {
     const hours = Math.min(Math.max(Number(req.query.hours ?? 24), 1), 168);
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const organizationId = await resolveOrganizationId(req);
+
+    if (!organizationId) {
+      return res.json({
+        window_hours: hours,
+        pipeline_running: isPipelineRunning(),
+        totals: { total: 0, success: 0, failed: 0, running: 0 },
+        by_job_type: [],
+        recent: [],
+      });
+    }
 
     const [grouped, latestLogs] = await Promise.all([
       ProcessingLog.aggregate([
-        { $match: { createdAt: { $gte: since } } },
+        { $match: { organization: organizationId, createdAt: { $gte: since } } },
         {
           $group: {
             _id: { jobType: "$jobType", status: "$status" },
@@ -49,7 +73,7 @@ export async function getProcessingLogSummary(req, res) {
           },
         },
       ]),
-      ProcessingLog.find({ createdAt: { $gte: since } })
+      ProcessingLog.find({ organization: organizationId, createdAt: { $gte: since } })
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
