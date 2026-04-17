@@ -1,21 +1,189 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Globe, Search, AlertTriangle, CheckCircle, ShieldAlert, Clock, RefreshCw, X, ExternalLink, Loader2 } from 'lucide-react';
 import { getSimilarDomains, getDomainActivities, getGlobalDomainActivities } from '@/features/domains/services/domains.service';
 import { useAuthedApi } from '@/hooks/use-authed-api';
-import { getSeverityBadgeClasses } from '@/shared/utils/severity';
-import { Globe, AlertTriangle, CheckCircle, ShieldAlert, Clock, ListFilter, Terminal } from 'lucide-react';
+import { RiskBadge } from '@/shared/components/RiskBadge';
+import { SkeletonTableRow } from '@/shared/components/SkeletonLoader';
 
+/** Map domain similarity_score (0–1) to a risk level */
+function domainRisk(domain) {
+  const sim  = Number(domain.similarity_score ?? 0);
+  const ageD = domain.domain_age_days ?? 999;
+
+  if (sim >= 0.9 || ageD < 14) return 'HIGH';
+  if (sim >= 0.75 || ageD < 60) return 'MEDIUM';
+  return 'LOW';
+}
+
+/** Score 0–100 derived from similarity + age */
+function riskScore(domain) {
+  const sim  = Number(domain.similarity_score ?? 0) * 60;
+  const ageD = domain.domain_age_days ?? 365;
+  const agePts = ageD < 7 ? 40 : ageD < 30 ? 25 : ageD < 90 ? 10 : 0;
+  return Math.min(100, Math.round(sim + agePts));
+}
+
+function rowBorderStyle(risk) {
+  if (risk === 'HIGH')   return { borderLeft: '3px solid #f87171', background: 'rgba(248,113,113,0.04)' };
+  if (risk === 'MEDIUM') return { borderLeft: '3px solid #fbbf24', background: 'rgba(251,191,36,0.03)' };
+  return { borderLeft: '3px solid transparent' };
+}
+
+/** Domain Detail Modal */
+function DomainDetailModal({ domain, activities = [], loading, onClose }) {
+  if (!domain) return null;
+
+  const risk  = domainRisk(domain);
+  const score = riskScore(domain);
+  const suspicious = activities.filter((a) => a.is_suspicious);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0"
+        style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        onClick={onClose}
+      />
+      <div
+        className="relative w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col rounded-xl shadow-2xl"
+        style={{ background: '#1e293b', border: '1px solid #334155' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 p-5 flex-shrink-0" style={{ borderBottom: '1px solid #334155' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(248,113,113,0.15)' }}>
+              <Globe style={{ width: 18, height: 18, color: '#f87171' }} />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold font-mono" style={{ color: '#f8fafc' }}>{domain.domain_name}</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <RiskBadge level={risk} />
+                <span className="text-xs font-bold" style={{ color: '#f87171' }}>{score}/100</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg" style={{ color: '#94a3b8' }}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+          {/* Flags */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Why Flagged</p>
+            <div className="space-y-2">
+              {[
+                domain.similarity_score >= 0.9 && '⚠ Very high similarity to target domain',
+                domain.domain_age_days != null && domain.domain_age_days < 14 && `⚠ Very new domain — registered ${domain.domain_age_days} days ago`,
+                domain.ssl_detected && '⚠ Active SSL certificate (may be used to appear legitimate)',
+                suspicious.length > 0 && `⚠ ${suspicious.length} suspicious activit${suspicious.length === 1 ? 'y' : 'ies'} detected`,
+                !domain.ssl_detected && '✓ No SSL certificate detected',
+              ].filter(Boolean).map((flag, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs p-3 rounded-lg" style={{ background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }}>
+                  {flag}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Domain Info */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Domain Data</p>
+            <div className="rounded-lg p-4 space-y-2.5" style={{ background: '#0f172a', border: '1px solid #334155' }}>
+              {[
+                ['Similarity Score', `${Math.round((domain.similarity_score ?? 0) * 100)}%`],
+                ['Domain Age',       domain.domain_age_days != null ? `${domain.domain_age_days} days` : domain.registration_date ?? 'Unknown'],
+                ['Registered',       domain.registration_date ?? 'Unknown'],
+                ['SSL Detected',     domain.ssl_detected ? 'Yes' : 'No'],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between text-xs">
+                  <span style={{ color: '#94a3b8' }}>{k}</span>
+                  <span className="font-medium" style={{ color: '#e2e8f0' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Activities */}
+          {loading && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="animate-spin w-5 h-5" style={{ color: '#60a5fa' }} />
+            </div>
+          )}
+          {!loading && activities.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>
+                Recent Activities ({activities.length})
+              </p>
+              <div className="space-y-2">
+                {activities.slice(0, 5).map((act) => (
+                  <div
+                    key={act.id}
+                    className="rounded-lg p-3 text-xs"
+                    style={{
+                      background: '#0f172a',
+                      border: act.is_suspicious ? '1px solid rgba(248,113,113,0.3)' : '1px solid #334155',
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium" style={{ color: '#e2e8f0' }}>{act.activity_type}</span>
+                      {act.is_suspicious && (
+                        <span style={{ color: '#f87171' }} className="flex items-center gap-1">
+                          <AlertTriangle style={{ width: 11, height: 11 }} /> Suspicious
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ color: '#94a3b8' }}>{act.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 p-4 flex-shrink-0" style={{ borderTop: '1px solid #334155' }}>
+          <button
+            className="px-4 py-2 rounded-lg text-xs font-semibold"
+            style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}
+          >
+            Add to Watchlist
+          </button>
+          <button
+            className="px-4 py-2 rounded-lg text-xs font-semibold"
+            style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+          >
+            Block Domain
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-xs font-medium"
+            style={{ color: '#cbd5e1', border: '1px solid #334155' }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Main DomainMonitor page component */
 export default function DomainMonitor() {
   const { callService } = useAuthedApi();
-  const [domains, setDomains] = useState([]);
-  const [selectedDomain, setSelectedDomain] = useState(null);
-  const [activities, setActivities] = useState([]);
-  const [globalLogs, setGlobalLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingActivities, setLoadingActivities] = useState(false);
-  const [loadingLogs, setLoadingLogs] = useState(false);
-  const [error, setError] = useState('');
+  const [domains,          setDomains]          = useState([]);
+  const [globalLogs,       setGlobalLogs]       = useState([]);
+  const [selectedDomain,   setSelectedDomain]   = useState(null);
+  const [activities,       setActivities]       = useState([]);
+  const [riskFilter,       setRiskFilter]       = useState('ALL');
+  const [loading,          setLoading]          = useState(true);
+  const [loadingActivities,setLoadingActivities]= useState(false);
+  const [loadingLogs,      setLoadingLogs]      = useState(false);
+  const [showModal,        setShowModal]        = useState(false);
+  const [error,            setError]            = useState('');
 
   useEffect(() => {
     fetchDomains();
@@ -23,263 +191,311 @@ export default function DomainMonitor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchGlobalLogs = async () => {
+  async function fetchGlobalLogs() {
     setLoadingLogs(true);
     try {
-      const data = await callService(getGlobalDomainActivities, 15);
+      const data = await callService(getGlobalDomainActivities, 20);
       setGlobalLogs(Array.isArray(data) ? data : []);
-    } catch (fetchError) {
+    } catch {
       setGlobalLogs([]);
-      setError(String(fetchError?.message ?? 'Failed to load global domain logs'));
     } finally {
       setLoadingLogs(false);
     }
-  };
+  }
 
-  const handleDomainClick = async (domain) => {
-    setSelectedDomain(domain);
-    setLoadingActivities(true);
-    try {
-      const data = await callService(getDomainActivities, domain.id);
-      setActivities(Array.isArray(data) ? data : []);
-    } catch (fetchError) {
-      setActivities([]);
-      setError(String(fetchError?.message ?? 'Failed to load domain activities'));
-    } finally {
-      setLoadingActivities(false);
-    }
-  };
-
-  const fetchDomains = async () => {
+  async function fetchDomains() {
     setLoading(true);
     setError('');
     try {
       const data = await callService(getSimilarDomains);
       const normalized = Array.isArray(data) ? data : [];
       setDomains(normalized);
-      if (normalized.length > 0) {
-        handleDomainClick(normalized[0]);
-      } else {
-        setSelectedDomain(null);
-        setActivities([]);
-      }
-    } catch (fetchError) {
-      setDomains([]);
-      setSelectedDomain(null);
-      setActivities([]);
-      setError(String(fetchError?.message ?? 'Failed to load similar domains'));
+    } catch (err) {
+      setError(String(err?.message ?? 'Failed to load similar domains'));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleViewDetails(domain, e) {
+    e?.stopPropagation();
+    setSelectedDomain(domain);
+    setShowModal(true);
+    setLoadingActivities(true);
+    try {
+      const data = await callService(getDomainActivities, domain.id);
+      setActivities(Array.isArray(data) ? data : []);
+    } catch {
+      setActivities([]);
+    } finally {
+      setLoadingActivities(false);
+    }
+  }
+
+  const FILTERS = ['ALL', 'HIGH', 'MEDIUM', 'LOW'];
+
+  const filtered = domains.filter((d) => {
+    if (riskFilter === 'ALL') return true;
+    return domainRisk(d) === riskFilter;
+  });
+
+  const counts = {
+    ALL:    domains.length,
+    HIGH:   domains.filter((d) => domainRisk(d) === 'HIGH').length,
+    MEDIUM: domains.filter((d) => domainRisk(d) === 'MEDIUM').length,
+    LOW:    domains.filter((d) => domainRisk(d) === 'LOW').length,
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400" />
-      </div>
-    );
-  }
-
-  if (error && domains.length === 0 && globalLogs.length === 0) {
-    return (
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-400">
-        {error}
-      </div>
-    );
-  }
+  const TABLE_HEADERS = ['Domain', 'Similarity', 'Age (Days)', 'SSL', 'Risk Score', 'Risk Level', 'Actions'];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Domains List */}
-      <div className="lg:col-span-1 space-y-4">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Globe className="w-5 h-5 text-cyan-400" />
-          Similar Domains
-        </h3>
-        <div className="space-y-3">
-          {domains.map((domain) => (
-            <button
-              key={domain.id}
-              onClick={() => handleDomainClick(domain)}
-              className={`w-full text-left p-4 rounded-xl border transition-all ${
-                selectedDomain?.id === domain.id
-                  ? 'bg-gray-800 border-cyan-500/50 ring-1 ring-cyan-500/50'
-                  : 'bg-gray-900 border-gray-800 hover:border-gray-700'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <span className="font-medium text-white break-all">{domain.domain_name}</span>
-                {domain.similarity_score >= 0.9 && (
-                  <span className="shrink-0 bg-red-500/10 text-red-500 text-[10px] px-2 py-0.5 rounded border border-red-500/20 font-bold uppercase tracking-wider">
-                    High Similarity
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-4 text-xs text-gray-400">
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                  {Math.round(domain.similarity_score * 100)}% Match
-                </div>
-                <div>Reg: {domain.registration_date}</div>
-              </div>
-            </button>
-          ))}
+    <div className="space-y-6">
+      {/* Section Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: '#f8fafc' }}>Domain Intelligence</h2>
+          <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>
+            Typosquatting, lookalike domains, and malicious infrastructure detection
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg" style={{ background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1' }}>
+            <Globe style={{ width: 13, height: 13, color: '#fbbf24' }} />
+            {domains.length} domains monitored
+          </div>
+          <button
+            onClick={fetchDomains}
+            className="p-2 rounded-lg transition-colors"
+            style={{ background: '#1e293b', border: '1px solid #334155', color: '#94a3b8' }}
+          >
+            <RefreshCw style={{ width: 14, height: 14 }} className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
       </div>
 
-      {/* Activities Section */}
-      <div className="lg:col-span-2 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-red-400" />
-            Domain Activities
-            {selectedDomain && (
-              <span className="text-gray-400 text-sm font-normal ml-2">for {selectedDomain.domain_name}</span>
-            )}
-          </h3>
+      {/* Error */}
+      {error && (
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}>
+          {error}
         </div>
+      )}
 
-        {loadingActivities ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400" />
-          </div>
-        ) : activities.length > 0 ? (
-          <div className="space-y-4">
-            {activities.map((activity) => (
-              <div
-                key={activity.id}
-                className={`p-4 rounded-xl border ${activity.is_suspicious ? 'bg-gray-900 border-red-500/20' : 'bg-gray-900 border-gray-800'}`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="font-semibold text-white">{activity.activity_type}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${getSeverityBadgeClasses(activity.severity)}`}>
-                        {activity.severity}
+      {/* Risk filter tabs */}
+      <div className="flex items-center gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f}
+            onClick={() => setRiskFilter(f)}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+            style={
+              riskFilter === f
+                ? { background: '#60a5fa', color: '#fff' }
+                : { background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1' }
+            }
+          >
+            {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()} ({counts[f]})
+          </button>
+        ))}
+      </div>
+
+      {/* Domains table */}
+      <div className="rounded-xl overflow-hidden" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155' }}>
+                {TABLE_HEADERS.map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest whitespace-nowrap"
+                    style={{ color: '#64748b' }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading &&
+                Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonTableRow key={i} cols={7} />
+                ))
+              }
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm" style={{ color: '#94a3b8' }}>
+                    No domains found for this risk level.
+                  </td>
+                </tr>
+              )}
+              {!loading && filtered.map((domain) => {
+                const risk  = domainRisk(domain);
+                const score = riskScore(domain);
+                const sim   = Math.round((domain.similarity_score ?? 0) * 100);
+                const ageDays = domain.domain_age_days ?? '—';
+                const ssl   = domain.ssl_detected;
+
+                return (
+                  <tr
+                    key={domain.id}
+                    style={{ borderBottom: '1px solid #334155', ...rowBorderStyle(risk) }}
+                    className="transition-colors"
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = rowBorderStyle(risk).background ?? 'transparent'; }}
+                  >
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="text-xs font-mono font-medium" style={{ color: '#e2e8f0' }}>
+                        {domain.domain_name}
                       </span>
-                      {activity.is_suspicious && (
-                        <span className="flex items-center gap-1 text-red-400 text-xs font-medium">
-                          <AlertTriangle className="w-3 h-3" />
-                          Suspicious Activity
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="text-xs font-semibold" style={{ color: sim >= 90 ? '#f87171' : '#cbd5e1' }}>
+                        {sim}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="text-xs" style={{ color: '#cbd5e1' }}>{ageDays}</span>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      {ssl ? (
+                        <span className="flex items-center gap-1 text-xs" style={{ color: '#34d399' }}>
+                          <CheckCircle style={{ width: 12, height: 12 }} /> Yes
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs" style={{ color: '#94a3b8' }}>
+                          <X style={{ width: 12, height: 12 }} /> No
                         </span>
                       )}
-                    </div>
-                    <p className="text-sm text-gray-400 mt-2">{activity.description}</p>
-                    <div className="flex items-center gap-2 mt-4 text-xs text-gray-500">
-                      <Clock className="w-3 h-3" />
-                      {new Date(activity.detected_at).toLocaleString()}
-                    </div>
-                  </div>
-                  {activity.is_suspicious && (
-                    <div className="p-2 bg-red-400/10 rounded-lg">
-                      <ShieldAlert className="w-6 h-6 text-red-400" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-            <CheckCircle className="w-12 h-12 text-green-500/20 mx-auto mb-4" />
-            <p className="text-gray-400">No recent activities detected for this domain.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Global Activity Logs */}
-      <div className="lg:col-span-3 mt-12 space-y-6">
-        <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-            <Terminal className="w-6 h-6 text-cyan-400" />
-            Global Activity Logs
-            <span className="text-xs font-normal text-gray-500 bg-gray-800 px-2 py-1 rounded ml-2">Live Detections</span>
-          </h3>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              Auto-refreshing every 60s
-            </span>
-            <button
-              onClick={fetchGlobalLogs}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all"
-              title="Refresh Logs"
-            >
-              <ListFilter className="w-5 h-5" />
-            </button>
-          </div>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-1.5 w-16 rounded-full overflow-hidden"
+                          style={{ background: '#334155' }}
+                        >
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${score}%`,
+                              background: risk === 'HIGH' ? '#f87171' : risk === 'MEDIUM' ? '#fbbf24' : '#34d399',
+                              transition: 'width 0.5s ease',
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold tabular-nums" style={{ color: '#cbd5e1' }}>{score}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <RiskBadge level={risk} />
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <button
+                        onClick={(e) => handleViewDetails(domain, e)}
+                        className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                        style={{ border: '1px solid #334155', color: '#60a5fa', background: 'transparent' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(96,165,250,0.1)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        {loadingLogs ? (
-          <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400" />
-          </div>
-        ) : (
-          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden backdrop-blur-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-800/50 text-gray-400 text-xs font-bold uppercase tracking-wider">
-                    {['Timestamp', 'Target Domain', 'Activity Type', 'Description', 'Risk Level', 'Detection'].map((h) => (
-                      <th key={h} className="px-6 py-4">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {globalLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-800/30 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">
-                        {new Date(log.detected_at).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">{log.domain_name}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-xs font-semibold text-gray-300">{log.activity_type}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs text-gray-400 line-clamp-1 max-w-xs">{log.description}</p>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-[10px] px-2 py-1 rounded border font-bold uppercase tracking-wider ${getSeverityBadgeClasses(log.severity)}`}>
-                          {log.severity}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {log.is_suspicious ? (
-                          <span className="flex items-center gap-1.5 text-red-500 text-xs font-bold animate-pulse">
-                            <ShieldAlert className="w-3.5 h-3.5" />
-                            MALICIOUS
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-green-500 text-xs font-bold">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            BENIGN
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {globalLogs.length === 0 && (
-              <div className="p-12 text-center">
-                <p className="text-gray-500">No logs detected in the last 24 hours.</p>
-              </div>
-            )}
-            <div className="bg-gray-800/30 px-6 py-3 border-t border-gray-800 flex items-center justify-between">
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                showing {globalLogs.length} recent detections
-              </p>
-              <button className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
-                View Full Archive →
-              </button>
-            </div>
+        {/* Table footer */}
+        {!loading && (
+          <div
+            className="px-5 py-3 flex items-center justify-between text-xs"
+            style={{ borderTop: '1px solid #334155', color: '#94a3b8' }}
+          >
+            <span>Showing {filtered.length} of {domains.length} domains</span>
+            <span className="flex items-center gap-1">
+              <Clock style={{ width: 11, height: 11 }} /> Updated just now
+            </span>
           </div>
         )}
       </div>
+
+      {/* Global Logs Table (condensed) */}
+      {globalLogs.length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #334155' }}>
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: '#f8fafc' }}>Global Activity Log</h3>
+              <p className="text-xs" style={{ color: '#94a3b8' }}>Live detections across all monitored domains</p>
+            </div>
+            <button
+              onClick={fetchGlobalLogs}
+              className="p-1.5 rounded-lg transition-colors"
+              style={{ color: '#94a3b8', border: '1px solid #334155' }}
+            >
+              <RefreshCw style={{ width: 13, height: 13 }} className={loadingLogs ? 'animate-spin' : ''} />
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155' }}>
+                  {['Timestamp', 'Domain', 'Activity', 'Description', 'Risk', 'Status'].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: '#64748b' }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {globalLogs.map((log) => (
+                  <tr key={log.id} className="transition-colors" style={{ borderBottom: '1px solid #334155' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap font-mono" style={{ color: '#94a3b8' }}>
+                      {new Date(log.detected_at).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap font-mono font-medium" style={{ color: '#e2e8f0' }}>
+                      {log.domain_name}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap font-semibold" style={{ color: '#cbd5e1' }}>
+                      {log.activity_type}
+                    </td>
+                    <td className="px-4 py-3 max-w-xs">
+                      <p className="truncate" style={{ color: '#94a3b8' }}>{log.description}</p>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <RiskBadge level={(log.severity ?? '').toUpperCase() === 'HIGH' ? 'HIGH' : (log.severity ?? '').toUpperCase() === 'MEDIUM' ? 'MEDIUM' : 'LOW'} />
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {log.is_suspicious ? (
+                        <span className="flex items-center gap-1 font-bold" style={{ color: '#f87171' }}>
+                          <ShieldAlert style={{ width: 11, height: 11 }} /> MALICIOUS
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 font-semibold" style={{ color: '#34d399' }}>
+                          <CheckCircle style={{ width: 11, height: 11 }} /> Benign
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Domain Detail Modal */}
+      {showModal && selectedDomain && (
+        <DomainDetailModal
+          domain={selectedDomain}
+          activities={activities}
+          loading={loadingActivities}
+          onClose={() => { setShowModal(false); setSelectedDomain(null); setActivities([]); }}
+        />
+      )}
     </div>
   );
 }
