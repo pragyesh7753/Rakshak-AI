@@ -197,6 +197,8 @@ export async function runDomainIntelligenceCycle(options = {}) {
     startedAt,
     finishedAt: null,
     organizations: organizations.length,
+    organizationIds: organizations.map((org) => org.id),
+    organizationSummaries: [],
     generatedCandidates: 0,
     processedCandidates: 0,
     detectedDomains: 0,
@@ -224,24 +226,42 @@ export async function runDomainIntelligenceCycle(options = {}) {
       .filter((candidate) => candidate !== baseDomain)
       .slice(0, maxCandidatesPerOrg);
 
+    const organizationSummary = {
+      organizationId: organization.id,
+      organizationName: organization.name,
+      domain: organization.domain,
+      generatedCandidates: candidates.length,
+      processedCandidates: 0,
+      detectedDomains: 0,
+      highRiskDomains: 0,
+      alertsCreated: 0,
+      errors: 0,
+    };
+    summary.organizationSummaries.push(organizationSummary);
+
     summary.generatedCandidates += candidates.length;
 
     await runWithConcurrency(candidates, perOrgConcurrency, async (candidateDomain) => {
       summary.processedCandidates += 1;
+      organizationSummary.processedCandidates += 1;
 
       try {
         const result = await processCandidate(organization, candidateDomain);
         if (result.detected) {
           summary.detectedDomains += 1;
+          organizationSummary.detectedDomains += 1;
         }
         if (result.highRisk) {
           summary.highRiskDomains += 1;
+          organizationSummary.highRiskDomains += 1;
         }
         if (result.alertCreated) {
           summary.alertsCreated += 1;
+          organizationSummary.alertsCreated += 1;
         }
       } catch (error) {
         summary.errors += 1;
+        organizationSummary.errors += 1;
         console.error(
           `[domain-intelligence] candidate processing failed for ${candidateDomain}:`,
           error

@@ -104,6 +104,44 @@ function getSeedKeywords(org) {
   return [];
 }
 
+function extractOrganizationNameTokens(orgName) {
+  return uniqueKeywords(
+    String(orgName ?? "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/g)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length >= 3)
+  );
+}
+
+function buildOrganizationScopedQueryKeywords(organization, bankKeywords) {
+  const seedKeywords = uniqueKeywords(getSeedKeywords(organization));
+  const domainTokens = extractDomainTokens(organization?.domain);
+  const nameTokens = extractOrganizationNameTokens(organization?.orgName);
+  const normalizedBankKeywords = uniqueKeywords(bankKeywords);
+
+  const scopedCore = uniqueKeywords([
+    ...seedKeywords,
+    ...domainTokens,
+    ...nameTokens,
+    ...seedKeywords.map((token) => `${token} leak`),
+    ...seedKeywords.map((token) => `${token} breach`),
+    ...domainTokens.map((token) => `${token} leak`),
+    ...domainTokens.map((token) => `${token} breach`),
+  ]);
+
+  const scopedBankKeywords = normalizedBankKeywords.filter((keyword) => {
+    return (
+      scopedCore.includes(keyword) ||
+      seedKeywords.some((token) => keyword.includes(token)) ||
+      domainTokens.some((token) => keyword.includes(token)) ||
+      nameTokens.some((token) => keyword.includes(token))
+    );
+  });
+
+  return uniqueKeywords([...scopedCore, ...scopedBankKeywords]).slice(0, ORG_QUERY_MAX_PER_ORG);
+}
+
 function buildProfileText(org) {
   const orgName = String(org?.orgName ?? "");
   const sector = String(org?.sector ?? "");
@@ -416,6 +454,7 @@ export async function getDynamicRedditQueries() {
   if (organizations.length === 0) {
     return {
       queries: baselineQueries.slice(0, REDDIT_QUERY_MAX_PER_CYCLE),
+      queryOrganizations: {},
       metadata: {
         baselineCount: baselineQueries.length,
         dynamicCount: 0,
@@ -425,34 +464,62 @@ export async function getDynamicRedditQueries() {
   }
 
   const keywordBankMap = await ensureKeywordBankMap(organizations, { allowGemini: false });
+  const sortedOrganizations = [...organizations].sort((left, right) =>
+    String(left?._id ?? "").localeCompare(String(right?._id ?? ""))
+  );
   const querySet = new Set(baselineQueries);
+  const queryOwnerMap = new Map();
   let dynamicCount = 0;
 
-  for (const organization of organizations) {
-    if (querySet.size >= REDDIT_QUERY_MAX_PER_CYCLE) {
-      break;
-    }
-
+  for (const organization of sortedOrganizations) {
     const bank = keywordBankMap.get(String(organization._id));
-    const perOrgKeywords = uniqueKeywords([
-      ...getSeedKeywords(organization),
-      ...(Array.isArray(bank?.finalKeywords) ? bank.finalKeywords : []),
-    ]).slice(0, ORG_QUERY_MAX_PER_ORG);
+    const organizationId = String(organization._id);
+    const perOrgKeywords = buildOrganizationScopedQueryKeywords(
+      organization,
+      Array.isArray(bank?.finalKeywords) ? bank.finalKeywords : []
+    );
 
-    for (const keyword of perOrgKeywords) {
-      if (querySet.size >= REDDIT_QUERY_MAX_PER_CYCLE) {
-        break;
+    for (const [index, keyword] of perOrgKeywords.entries()) {
+      const alreadyIncluded = querySet.has(keyword);
+      if (!alreadyIncluded && querySet.size >= REDDIT_QUERY_MAX_PER_CYCLE) {
+        continue;
       }
 
-      if (!querySet.has(keyword)) {
+      if (!alreadyIncluded) {
         dynamicCount += 1;
+        querySet.add(keyword);
       }
-      querySet.add(keyword);
+
+      const ownershipScore = perOrgKeywords.length - index;
+      const existingOwner = queryOwnerMap.get(keyword);
+
+      if (!existingOwner || ownershipScore > existingOwner.score) {
+        queryOwnerMap.set(keyword, { organizationId, score: ownershipScore });
+        continue;
+      }
+
+      if (
+        ownershipScore === existingOwner.score &&
+        organizationId.localeCompare(existingOwner.organizationId) < 0
+      ) {
+        queryOwnerMap.set(keyword, { organizationId, score: ownershipScore });
+      }
     }
   }
 
+  const queries = Array.from(querySet).slice(0, REDDIT_QUERY_MAX_PER_CYCLE);
+  const queryOrganizations = Object.fromEntries(
+    queries
+      .map((query) => {
+        const owner = queryOwnerMap.get(query);
+        return [query, owner ? [owner.organizationId] : []];
+      })
+      .filter((entry) => entry[1].length > 0)
+  );
+
   return {
-    queries: Array.from(querySet).slice(0, REDDIT_QUERY_MAX_PER_CYCLE),
+    queries,
+    queryOrganizations,
     metadata: {
       baselineCount: baselineQueries.length,
       dynamicCount,

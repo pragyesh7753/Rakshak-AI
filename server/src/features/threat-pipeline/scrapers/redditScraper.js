@@ -4,12 +4,36 @@ import { RawPost } from "../../../models/RawPost.js";
 import { ThreatSource } from "../../../models/ThreatSource.js";
 import { getDynamicRedditQueries } from "../layers/keywordBank.js";
 
-async function logProcessing(status, message) {
+async function logProcessing(status, message, options = {}) {
   await ProcessingLog.create({
+    organization: options?.organizationId ?? null,
     jobType: "reddit_scraper",
     status,
     message,
   });
+}
+
+function uniqueOrganizationIds(values) {
+  return [
+    ...new Set(
+      (Array.isArray(values) ? values : [])
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+    ),
+  ];
+}
+
+async function emitOrgLogs(status, message, organizationIds = []) {
+  const scopedOrganizationIds = uniqueOrganizationIds(organizationIds);
+  if (scopedOrganizationIds.length === 0) {
+    return;
+  }
+
+  await Promise.all(
+    scopedOrganizationIds.map((organizationId) =>
+      logProcessing(status, `${message} | org=${organizationId}`, { organizationId })
+    )
+  );
 }
 
 export async function scrapeReddit() {
@@ -19,15 +43,38 @@ export async function scrapeReddit() {
     { upsert: true, returnDocument: "after" }
   );
 
-  await logProcessing("running", "[LIVE] Starting Reddit scraping cycle");
+  const { queries, metadata, queryOrganizations = {} } = await getDynamicRedditQueries();
 
-  const { queries, metadata } = await getDynamicRedditQueries();
-  await logProcessing(
-    "running",
-    `[INFO] Reddit query plan | total: ${queries.length} | baseline: ${metadata.baselineCount} | dynamic: ${metadata.dynamicCount} | organizations: ${metadata.organizationCount}`
+  const organizationQueryCounts = new Map();
+  for (const organizationsForQuery of Object.values(queryOrganizations)) {
+    for (const organizationId of uniqueOrganizationIds(organizationsForQuery)) {
+      organizationQueryCounts.set(
+        organizationId,
+        Number(organizationQueryCounts.get(organizationId) ?? 0) + 1
+      );
+    }
+  }
+
+  await Promise.all(
+    Array.from(organizationQueryCounts.entries()).map(([organizationId, queryCount]) =>
+      Promise.all([
+        logProcessing(
+          "running",
+          `[LIVE] Starting Reddit scraping cycle | org=${organizationId} | targeted_queries: ${queryCount}`,
+          { organizationId }
+        ),
+        logProcessing(
+          "running",
+          `[INFO] Reddit query plan | org=${organizationId} | total: ${queries.length} | baseline: ${metadata.baselineCount} | dynamic: ${metadata.dynamicCount} | organizations: ${metadata.organizationCount} | organization_queries: ${queryCount}`,
+          { organizationId }
+        ),
+      ])
+    )
   );
 
   for (const query of queries) {
+    const scopedOrganizationIds = queryOrganizations[query] ?? [];
+
     try {
       const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=10`;
       const res = await axios.get(url, { headers: { "User-Agent": "rakshak-ai" } });
@@ -57,9 +104,17 @@ export async function scrapeReddit() {
         );
       }
 
-      await logProcessing("success", `[COMPLETED] Reddit query processed: ${query} | posts: ${posts.length}`);
+      await emitOrgLogs(
+        "success",
+        `[COMPLETED] Reddit query processed: ${query} | posts: ${posts.length}`,
+        scopedOrganizationIds
+      );
     } catch (error) {
-      await logProcessing("failed", `[ERROR] Reddit query failed: ${query} | ${error.message}`);
+      await emitOrgLogs(
+        "failed",
+        `[ERROR] Reddit query failed: ${query} | ${error.message}`,
+        scopedOrganizationIds
+      );
     }
   }
 }

@@ -587,6 +587,13 @@ async function logProcessing(status, message, options = {}) {
   });
 }
 
+async function logProcessingForAllOrganizations(status, message) {
+  // Lifecycle/debug entries are intentionally skipped at tenant scope.
+  // Org-visible logs are written through explicit org-scoped events such as routed alerts.
+  void status;
+  void message;
+}
+
 export async function analyzePosts() {
   const huggingFaceEnabled = isHuggingFaceConfigured();
   const groqEnabled = isGroqConfigured();
@@ -606,17 +613,17 @@ export async function analyzePosts() {
   let borderlineCases = 0;
   let groqSkippedByCap = 0;
 
-  await logProcessing("running", "[LIVE] Starting AI analysis pipeline");
+  await logProcessingForAllOrganizations("running", "[LIVE] Starting AI analysis pipeline");
 
   if (!huggingFaceEnabled) {
-    await logProcessing(
+    await logProcessingForAllOrganizations(
       "running",
       "[INFO] HUGGINGFACE_API_KEY not configured, using heuristic-only context/sentiment fallback"
     );
   }
 
   if (!groqEnabled) {
-    await logProcessing(
+    await logProcessingForAllOrganizations(
       "running",
       "[INFO] GROQ_API_KEY not configured, Llama reasoning will be skipped"
     );
@@ -625,7 +632,7 @@ export async function analyzePosts() {
   const posts = await RawPost.find({ processed: false }).sort({ createdAt: 1 }).limit(150);
 
   if (posts.length === 0) {
-    await logProcessing("success", "[COMPLETED] No new posts to analyze");
+    await logProcessingForAllOrganizations("success", "[COMPLETED] No new posts to analyze");
     return;
   }
 
@@ -634,7 +641,7 @@ export async function analyzePosts() {
   let relevanceFilteredOut = 0;
 
   if (organizationProfiles.length === 0) {
-    await logProcessing("running", "[INFO] No organization profiles available for routing");
+    await logProcessingForAllOrganizations("running", "[INFO] No organization profiles available for routing");
   }
 
   const queuedForThreatAnalysis = [];
@@ -732,7 +739,7 @@ export async function analyzePosts() {
 
       await logProcessing(
         "success",
-        `[ORG] Threat routed | threat_id: ${String(threat._id)} | channel: ${finalRouteChannel}`,
+        `[ORG] Threat routed | org=${String(org._id)} | threat_id: ${String(threat._id)} | channel: ${finalRouteChannel}`,
         { organizationId: org._id }
       );
     }
@@ -763,7 +770,7 @@ export async function analyzePosts() {
 
       queuedForThreatAnalysis.push({ post, assessment, candidate });
     } catch (error) {
-      await logProcessing("failed", `[ERROR] Post processing failed ${post._id}: ${error.message}`);
+      await logProcessingForAllOrganizations("failed", `[ERROR] Post processing failed ${post._id}: ${error.message}`);
     }
   }
 
@@ -774,7 +781,7 @@ export async function analyzePosts() {
 
   if (huggingFaceEnabled && queuedForThreatAnalysis.length > 0) {
     const modelConfig = getHuggingFaceModelConfig();
-    await logProcessing(
+    await logProcessingForAllOrganizations(
       "running",
       `[INFO] Hugging Face models active | minilm=${modelConfig.minilm} | xlmr=${modelConfig.xlmr}`
     );
@@ -798,7 +805,7 @@ export async function analyzePosts() {
           );
         } catch (error) {
           contextByPostId.set(String(entry.post._id), buildFallbackContext(entry.assessment));
-          await logProcessing(
+          await logProcessingForAllOrganizations(
             "failed",
             `[ERROR] MiniLM context failed ${entry.post._id}: ${error.message}`
           );
@@ -820,7 +827,7 @@ export async function analyzePosts() {
         for (const entry of batch) {
           sentimentByPostId.set(String(entry.post._id), buildFallbackSentiment());
         }
-        await logProcessing(
+        await logProcessingForAllOrganizations(
           "failed",
           `[ERROR] XLM-R sentiment batch failed (${batch.length} posts): ${error.message}`
         );
@@ -871,7 +878,7 @@ export async function analyzePosts() {
           groqCallsUsed += 1;
           usedReasoning = true;
         } catch (error) {
-          await logProcessing(
+          await logProcessingForAllOrganizations(
             "failed",
             `[ERROR] Groq reasoning failed ${entry.post._id}: ${error.message}`
           );
@@ -886,7 +893,7 @@ export async function analyzePosts() {
         reasoning: usedReasoning,
       });
     } catch (error) {
-      await logProcessing(
+      await logProcessingForAllOrganizations(
         "failed",
         `[ERROR] Post processing failed ${entry.post._id}: ${error.message}`
       );
@@ -894,17 +901,17 @@ export async function analyzePosts() {
   }
 
   if (groqSkippedByCap > 0) {
-    await logProcessing(
+    await logProcessingForAllOrganizations(
       "success",
       `[INFO] Skipped Groq reasoning for ${groqSkippedByCap} ambiguous/borderline posts due to GROQ_REASONING_CAP_PER_CYCLE=${groqReasoningCapPerCycle}`
     );
   }
 
   if (groqEnabled) {
-    await logProcessing("running", `[INFO] Groq model active | model=${getGroqModel()}`);
+    await logProcessingForAllOrganizations("running", `[INFO] Groq model active | model=${getGroqModel()}`);
   }
 
-  await logProcessing(
+  await logProcessingForAllOrganizations(
     "success",
     `[COMPLETED] AI analysis completed | scanned: ${posts.length} | queued: ${queuedForThreatAnalysis.length} | minilm_calls: ${minilmCallsUsed} | xlmr_calls: ${xlmrCallsUsed} | groq_calls: ${groqCallsUsed} | ambiguous: ${ambiguousCases} | borderline: ${borderlineCases} | reasoning_skipped: ${groqSkippedByCap} | relevance_filtered: ${relevanceFilteredOut}`
   );

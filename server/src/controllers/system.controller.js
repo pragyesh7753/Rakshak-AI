@@ -11,6 +11,23 @@ function normalizeStatus(status) {
   return "other";
 }
 
+function buildTenantLogMatch(organizationId, since = null) {
+  const match = {
+    organization: organizationId,
+    $or: [
+      { jobType: { $nin: ["reddit_scraper", "ai_analysis"] } },
+      { jobType: "reddit_scraper", message: /\| org=/i },
+      { jobType: "ai_analysis", message: /\| org=/i },
+    ],
+  };
+
+  if (since instanceof Date) {
+    match.createdAt = { $gte: since };
+  }
+
+  return match;
+}
+
 async function resolveOrganizationId(req) {
   const userId = getUserId(req);
   const organization = await Organization.findOne({ clerkUserId: userId }).select("_id").lean();
@@ -26,7 +43,7 @@ export async function getProcessingLogs(req, res) {
       return res.json([]);
     }
 
-    const logs = await ProcessingLog.find({ organization: organizationId })
+    const logs = await ProcessingLog.find(buildTenantLogMatch(organizationId))
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
@@ -62,9 +79,11 @@ export async function getProcessingLogSummary(req, res) {
       });
     }
 
+    const tenantScopedMatch = buildTenantLogMatch(organizationId, since);
+
     const [grouped, latestLogs] = await Promise.all([
       ProcessingLog.aggregate([
-        { $match: { organization: organizationId, createdAt: { $gte: since } } },
+        { $match: tenantScopedMatch },
         {
           $group: {
             _id: { jobType: "$jobType", status: "$status" },
@@ -73,7 +92,7 @@ export async function getProcessingLogSummary(req, res) {
           },
         },
       ]),
-      ProcessingLog.find({ organization: organizationId, createdAt: { $gte: since } })
+      ProcessingLog.find(tenantScopedMatch)
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
