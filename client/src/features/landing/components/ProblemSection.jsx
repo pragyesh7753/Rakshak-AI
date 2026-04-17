@@ -1,34 +1,34 @@
 import { Card } from '@/components/ui/card'
-import { AlertTriangle, DollarSign, Clock } from 'lucide-react'
+import { MessageSquare, Globe, Mail } from 'lucide-react'
 
 export function ProblemSection() {
   const problems = [
     {
-      icon: AlertTriangle,
-      title: 'SMBs Are Prime Targets',
-      description: '43% of cyberattacks target small businesses, yet most lack dedicated security teams or monitoring tools.',
+      icon: MessageSquare,
+      title: 'Discussions on forums/social media',
+      description: 'Attackers discuss targets, share leaked data, and plan attacks in public and private spaces long before execution.',
     },
     {
-      icon: DollarSign,
-      title: 'Breaches Are Expensive',
-      description: 'Average cost of a data breach for SMBs is $2.98M. Early detection can prevent catastrophic losses.',
+      icon: Globe,
+      title: 'Fake domains being registered',
+      description: 'Lookalike domains are set up days or weeks in advance to prepare for credential harvesting and phishing.',
     },
     {
-      icon: Clock,
-      title: 'Threats Emerge 24/7',
-      description: 'Credentials leak on paste sites, GitHub repos expose secrets, and attackers discuss targets in real-time.',
+      icon: Mail,
+      title: 'Phishing emails being deployed',
+      description: 'Targeted campaigns are sent to employees to breach the perimeter. By then, the attack is already in motion.',
     },
   ]
 
   return (
-    <section className="py-16 md:py-24 bg-background">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            Why SMBs Need Proactive Security
+    <section className="py-20 md:py-28 bg-background relative border-t border-border/50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center mb-16 space-y-4">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground text-balance">
+            Threats Start Outside Your Organization
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Traditional security tools react after breaches happen. Rakshak AI detects threats before they strike.
+            Most cyber attacks don't start with emails — they begin publicly and evolve. By focusing only on the perimeter, you miss the early warning signs.
           </p>
         </div>
 
@@ -36,19 +36,22 @@ export function ProblemSection() {
           {problems.map((problem, index) => {
             const Icon = problem.icon
             return (
-              <Card key={index} className="p-8 border-border hover:shadow-lg transition-shadow">
-                <div className="flex flex-col gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Card key={index} className="p-8 border-border/50 bg-card/40 backdrop-blur-sm hover:bg-muted/20 transition-all hover:-translate-y-1">
+                <div className="flex flex-col gap-5">
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground">{problem.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{problem.description}</p>
+                  <h3 className="text-xl font-semibold text-foreground leading-snug">{problem.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed text-sm">{problem.description}</p>
                 </div>
               </Card>
             )
           })}
         </div>
       </div>
+      
+      {/* Subtle background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-64 bg-primary/5 blur-[120px] pointer-events-none rounded-full" />
     </section>
   )
 }

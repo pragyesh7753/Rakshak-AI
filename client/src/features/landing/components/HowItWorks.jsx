@@ -1,72 +1,49 @@
-import { Card } from '@/components/ui/card'
-import { Search, Filter, Target, ShieldCheck } from 'lucide-react'
+import { UserPlus, Activity, BellRing } from 'lucide-react'
 
 export function HowItWorks() {
   const steps = [
     {
-      number: '1',
-      icon: Search,
-      title: 'Scraping',
-      description: 'Continuously crawl Reddit, GitHub, paste sites, and OSINT sources for mentions of your domains, emails, and assets.',
+      icon: UserPlus,
+      title: '1. Register your organization',
+      description: 'Sign up and add your primary domains, brand names, and key assets to track.',
     },
     {
-      number: '2',
-      icon: Filter,
-      title: 'Filtering',
-      description: 'Smart algorithms filter out noise and false positives, focusing only on relevant security threats to your business.',
+      icon: Activity,
+      title: '2. AI monitors threat surface',
+      description: 'Our engine continuously scans social media, dark web, domain registries, and email channels.',
     },
     {
-      number: '3',
-      icon: Target,
-      title: 'Scoring',
-      description: 'Each threat is assigned a risk score based on severity, exploitability, and potential business impact.',
-    },
-    {
-      number: '4',
-      icon: ShieldCheck,
-      title: 'AI Validation',
-      description: 'Advanced AI models validate threats and provide actionable remediation steps with context-aware recommendations.',
+      icon: BellRing,
+      title: '3. Get actionable alerts',
+      description: 'Receive real-time notifications with clear severity scores and remediation steps.',
     },
   ]
 
   return (
-    <section id="how-it-works" className="py-16 md:py-24 bg-muted/30">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            How Rakshak AI Works
+    <section className="py-24 bg-muted/20 relative border-t border-border/50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center mb-16 space-y-4">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+            How It Works
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-            Our 4-layer AI pipeline detects threats in real-time with precision and speed.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            From setup to proactive defense in under 5 minutes.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {steps.map((step, index) => {
             const Icon = step.icon
             return (
-              <div key={index} className="relative">
-                {/* Connector line */}
-                {index < steps.length - 1 && (
-                  <div className="absolute top-12 left-[calc(50%+24px)] right-[calc(-100%+24px)] h-0.5 bg-linear-to-r from-primary to-secondary hidden md:block" />
-                )}
-
-                <Card className="relative p-8 border-border bg-background h-full">
-                  {/* Step number badge */}
-                  <div className="absolute -top-4 -left-4">
-                    <div className="h-8 w-8 rounded-full bg-linear-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm">
-                      {step.number}
-                    </div>
+              <div key={index} className="relative group">
+                <div className="absolute inset-0 bg-primary/5 rounded-2xl blur-xl group-hover:bg-primary/10 transition-colors" />
+                <div className="relative p-8 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm hover:-translate-y-1 transition-transform h-full">
+                  <div className="h-12 w-12 rounded-xl bg-background border border-border flex items-center justify-center mb-6 shadow-sm">
+                    <Icon className="h-6 w-6 text-primary" />
                   </div>
-
-                  <div className="flex flex-col gap-4 pt-4">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-                  </div>
-                </Card>
+                  <h3 className="text-xl font-semibold text-foreground mb-3">{step.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+                </div>
               </div>
             )
           })}
