@@ -19,6 +19,7 @@ export function DashboardPage() {
     selectedThreat,
     showModal,
     alerts,
+    emailIntelligenceResults,
     organization,
     logs,
     logSummary,
@@ -69,6 +70,7 @@ export function DashboardPage() {
           stats={stats}
           threats={threats}
           alerts={alerts}
+          emailIntelligenceResults={emailIntelligenceResults}
           organization={organization}
           logs={logs}
           logSummary={logSummary}

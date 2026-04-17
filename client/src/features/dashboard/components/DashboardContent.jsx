@@ -6,7 +6,7 @@ import AlertsTable from '@/features/alerts/components/AlertsTable';
 import ProfileCard from '@/features/organization/components/ProfileCard';
 import SystemLogs from '@/features/system/components/SystemLogs';
 import DomainMonitor from '@/features/domains/components/DomainMonitor';
-import ThreatDetection from '@/features/monitoring/components/ThreatDetection';
+import EmailIntelligencePanel from '@/features/email-intelligence/components/EmailIntelligencePanel';
 
 /**
  * Routes to the correct section component based on the active sidebar selection.
@@ -17,6 +17,7 @@ export default function DashboardContent({
   stats,
   threats,
   alerts,
+  emailIntelligenceResults,
   organization,
   logs,
   logSummary,
@@ -82,8 +83,10 @@ export default function DashboardContent({
         </div>
       )}
 
-      {/* ── Monitoring ──────────────────────────────────────────────────────── */}
-      {activeSection === 'monitoring' && <ThreatDetection />}
+      {/* ── Email Intelligence ─────────────────────────────────────────────── */}
+      {activeSection === 'email-intelligence' && (
+        <EmailIntelligencePanel results={emailIntelligenceResults} />
+      )}
 
       {/* ── Domains ─────────────────────────────────────────────────────────── */}
       {activeSection === 'domains' && <DomainMonitor />}

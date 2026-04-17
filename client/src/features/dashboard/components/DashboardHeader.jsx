@@ -4,7 +4,7 @@ import { RefreshCw } from 'lucide-react';
 
 const SECTION_TITLES = {
   dashboard:  'Threat Intelligence Dashboard',
-  monitoring: 'Regular Threat Detection',
+  'email-intelligence': 'Email Intelligence',
   alerts:     'Security Alerts',
   domains:    'Domain Monitoring',
   profile:    'Organization Profile',

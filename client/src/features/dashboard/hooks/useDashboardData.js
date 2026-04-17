@@ -10,6 +10,7 @@ import {
   getProcessingLogSummary,
   startPipelineRun,
 } from '@/features/system/services/logs.service';
+import { getEmailIntelligenceResults } from '@/features/email-intelligence/services/emailIntelligence.service';
 import { useAuthedApi } from '@/hooks/use-authed-api';
 
 const THREATS_PER_PAGE = 10;
@@ -32,6 +33,7 @@ export function useDashboardData() {
   const [showModal, setShowModal] = useState(false);
 
   const [alerts, setAlerts] = useState([]);
+  const [emailIntelligenceResults, setEmailIntelligenceResults] = useState([]);
   const [organization, setOrganization] = useState(null);
   const [logs, setLogs] = useState([]);
   const [logSummary, setLogSummary] = useState(null);
@@ -63,6 +65,11 @@ export function useDashboardData() {
   const fetchOrganization = useCallback(async () => {
     const data = await callService(getOrganization);
     setOrganization(data);
+  }, [callService]);
+
+  const fetchEmailIntelligence = useCallback(async () => {
+    const data = await callService(getEmailIntelligenceResults, 50);
+    setEmailIntelligenceResults(Array.isArray(data) ? data : []);
   }, [callService]);
 
   const fetchLogs = useCallback(async () => {
@@ -111,6 +118,7 @@ export function useDashboardData() {
         fetchStats(),
         fetchThreats(),
         fetchAlerts(),
+        fetchEmailIntelligence(),
         fetchOrganization(),
         refreshSystemData(),
       ]);
@@ -119,7 +127,7 @@ export function useDashboardData() {
     } finally {
       setLoading(false);
     }
-  }, [fetchStats, fetchThreats, fetchAlerts, fetchOrganization, refreshSystemData]);
+  }, [fetchStats, fetchThreats, fetchAlerts, fetchEmailIntelligence, fetchOrganization, refreshSystemData]);
 
   // Initial load
   useEffect(() => {
@@ -216,6 +224,7 @@ export function useDashboardData() {
     selectedThreat,
     showModal,
     alerts,
+    emailIntelligenceResults,
     organization,
     logs,
     logSummary,

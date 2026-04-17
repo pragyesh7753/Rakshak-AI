@@ -1,12 +1,12 @@
 'use client';
 
-import { LayoutDashboard, Bell, User, Activity, Globe, LogOut, X, ScrollText } from 'lucide-react';
+import { LayoutDashboard, Bell, User, MailWarning, Globe, LogOut, X, ScrollText } from 'lucide-react';
 import { useClerk } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 
 /**
  * Application sidebar — shared across all dashboard sections.
- * Nav items use distinct icons (Activity for monitoring, ScrollText for system logs).
+ * Nav items use distinct icons (MailWarning for email intelligence, ScrollText for system logs).
  */
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, user }) {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
   const menuItems = [
     { id: 'dashboard',  label: 'Dashboard',         icon: LayoutDashboard },
-    { id: 'monitoring', label: 'Regular Monitoring', icon: Activity },
+    { id: 'email-intelligence', label: 'Email Intelligence', icon: MailWarning },
     { id: 'alerts',     label: 'Alerts',             icon: Bell },
     { id: 'domains',    label: 'Domain Monitor',     icon: Globe },
     { id: 'profile',    label: 'Profile',            icon: User },
