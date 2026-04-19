@@ -1,10 +1,16 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ShieldAlert, Activity } from 'lucide-react'
+import { BookDemoModal } from './BookDemoModal'
 
 export function Hero() {
+  const [demoOpen, setDemoOpen] = useState(false)
+
   return (
-    <section className="relative overflow-hidden bg-background pt-24 pb-20 md:pt-36 md:pb-32">
+    <>
+      <BookDemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
+      <section className="relative overflow-hidden bg-background pt-24 pb-20 md:pt-36 md:pb-32">
       {/* Cyber gradient background */}
       <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] opacity-20 pointer-events-none">
@@ -38,8 +44,13 @@ export function Hero() {
                   Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full h-12 px-8 font-medium border-border hover:bg-muted/50 backdrop-blur-sm">
-                <Link to="#">Request Demo</Link>
+              <Button
+                onClick={() => setDemoOpen(true)}
+                variant="outline"
+                size="lg"
+                className="rounded-full h-12 px-8 font-medium border-border hover:text-foreground backdrop-blur-sm"
+              >
+                Request Demo
               </Button>
             </div>
           </div>
@@ -97,5 +108,6 @@ export function Hero() {
         </div>
       </div>
     </section>
+    </>
   )
 }
